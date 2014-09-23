@@ -62,18 +62,19 @@ class SorterDropDownColumn extends CGridColumn {
 		if (Yii::app()->request->enableCsrfValidation) {
 			$csrfTokenName = Yii::app()->request->csrfTokenName;
 			$csrfToken = Yii::app()->request->csrfToken;
-			$csrf = "\n\t\tdata:{ '$csrfTokenName':'$csrfToken' },";
+			$csrf = ", '$csrfTokenName':'$csrfToken'";
 		} else {
 			$csrf = '';
 		}
 		
 		$paramConst = SorterAbstractMoveAction::PARAM;
+		$dataParams = "\n\t\tdata:{ '{$paramConst}': $(this).val() {$csrf} },";
+		
 		$jsOnChange = <<<EOD
 function() {
 	jQuery('#{$this->grid->id}').yiiGridView('update', {
 		type: 'POST',
-		url: {$this->grid->controller->createUrl($this->algo, array(SorterAbstractMoveAction::DIRECTION => $this->direction))},$csrf
-		data: {{$paramConst}: $(this).val()}
+		url: {$this->grid->controller->createUrl($this->algo, array(SorterAbstractMoveAction::DIRECTION => $this->direction))},$dataParams
 		success: function(data) {
 			jQuery('#{$this->grid->id}').yiiGridView('update');
 			return false;
