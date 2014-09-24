@@ -331,7 +331,16 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param integer $position
 	 */
 	public function sorterCurrentMoveToPositionBefore($position) {
-		
+		$model = $this->owner->model()->find(array(
+			'order' => "t.{$this->sortField} ASC",
+			'offset' => $position - 1,
+		));
+
+		if (empty($model)) {
+			
+		}
+		// находим позицию.
+		// делаем moveBefore
 	}
 
 	/**
@@ -339,7 +348,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param integer $position
 	 */
 	public function sorterCurrentMoveToPositionAfter($position) {
-		
+		// находим позицию.
+		// делаем moveAfter
 	}
 
 	/**

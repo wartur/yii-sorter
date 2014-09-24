@@ -18,8 +18,8 @@ Yii::import('zii.widgets.grid.CGridColumn');
  */
 class SorterDropDownColumn extends CGridColumn {
 
-	const ALGO_MOVE_TO_MODEL = 'moveToModel';
-	const ALGO_MOVE_TO_POSITION = 'moveToPosition';
+	const ALGO_MOVE_TO_MODEL = 'sorterMoveToModel';
+	const ALGO_MOVE_TO_POSITION = 'sorterMoveToPosition';
 
 	/**
 	 * @var integer алгоритм работы
@@ -47,7 +47,8 @@ class SorterDropDownColumn extends CGridColumn {
 			if($this->algo == self::ALGO_MOVE_TO_MODEL) {
 				throw new CException(Yii::t('SorterDropDownColumn', 'sortValues is reqired if select algo == ({algo})', array('{algo}' => self::ALGO_MOVE_TO_MODEL)));
 			} else {
-				$this->sortValues = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+				$combine = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+				$this->sortValues = array_combine($combine, $combine);
 			}
 		}
 
@@ -71,10 +72,10 @@ class SorterDropDownColumn extends CGridColumn {
 		$dataParams = "\n\t\tdata:{ '{$paramConst}': $(this).val() {$csrf} },";
 		
 		$jsOnChange = <<<EOD
-function() {
+js:function() {
 	jQuery('#{$this->grid->id}').yiiGridView('update', {
 		type: 'POST',
-		url: {$this->grid->controller->createUrl($this->algo, array(SorterAbstractMoveAction::DIRECTION => $this->direction))},$dataParams
+		url: '{$this->grid->controller->createUrl($this->algo, array(SorterAbstractMoveAction::DIRECTION => $this->direction))}'+'/id/'+$(this).data('id'),$dataParams
 		success: function(data) {
 			jQuery('#{$this->grid->id}').yiiGridView('update');
 			return false;
@@ -95,12 +96,13 @@ EOD;
 		Yii::app()->getClientScript()->registerScript(__CLASS__ . '#' . $this->id, $jqueryJs);
 	}
 
-	protected function renderDropDown($row, $data) {
-		//CHtml::dropDownList($name, $select, $data)
-	}
-
 	protected function renderDataCellContent($row, $data) {
 		
+		echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
+			'class' => $this->cssDropdownClass,
+			'empty' => 'position',
+			'data-id' => $data->getPrimaryKey()
+		));
 	}
 
 }

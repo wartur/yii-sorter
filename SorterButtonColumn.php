@@ -71,7 +71,7 @@ EOD;
 			$this->buttons = array(
 				'begin' => array(
 					'label' => 'B',
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveToEdge", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveToEdge", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveToBegin'
@@ -79,7 +79,7 @@ EOD;
 				),
 				'upNumber' => array(
 					'label' => "Un{$this->numberUp}",
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveNumber", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP, SorterAbstractMoveAction::PARAM => $this->numberUp))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveNumber", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP, SorterAbstractMoveAction::PARAM => $this->numberUp))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveUpNumber'
@@ -87,7 +87,7 @@ EOD;
 				),
 				'up' => array(
 					'label' => 'U',
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveOne", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveOne", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_UP))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveUp'
@@ -95,7 +95,7 @@ EOD;
 				),
 				'down' => array(
 					'label' => 'D',
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveOne", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveOne", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveDown'
@@ -103,7 +103,7 @@ EOD;
 				),
 				'downNumber' => array(
 					'label' => "Dn{$this->numberDown}",
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveNumber", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN, SorterAbstractMoveAction::PARAM => $this->numberDown))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveNumber", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN, SorterAbstractMoveAction::PARAM => $this->numberDown))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveDownNumber'
@@ -111,7 +111,7 @@ EOD;
 				),
 				'end' => array(
 					'label' => 'E',
-					'url' => 'Yii::app()->controller->createUrl("sorterMoveToEdge", array("id" => $data->id, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN))',
+					'url' => 'Yii::app()->controller->createUrl("sorterMoveToEdge", array("id" => $data->primaryKey, SorterAbstractMoveAction::DIRECTION => SorterAbstractMoveAction::DIRECTION_DOWN))',
 					'click' => $js,
 					'options' => array(
 						'class' => 'moveToEnd'
