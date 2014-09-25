@@ -33,21 +33,25 @@ class SorterDropDownColumn extends CGridColumn {
 
 	/**
 	 * @var array
-	 * Default: array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+	 * Default: array((0), 1, 2, 3, 4, 5, 6, 7, 8, 9);
 	 */
 	public $sortValues = array();
 
 	/**
 	 * @var string
 	 */
-	public $cssDropdownClass = null;
+	public $cssDropdownClassPart = null;
 
 	public function init() {
 		if (empty($this->sortValues)) {
 			if($this->algo == self::ALGO_MOVE_TO_MODEL) {
 				throw new CException(Yii::t('SorterDropDownColumn', 'sortValues is reqired if select algo == ({algo})', array('{algo}' => self::ALGO_MOVE_TO_MODEL)));
 			} else {
-				$combine = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+				if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+					$combine = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+				} else {
+					$combine = array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+				}
 				$this->sortValues = array_combine($combine, $combine);
 			}
 		}
@@ -55,8 +59,8 @@ class SorterDropDownColumn extends CGridColumn {
 		// only head for optimize css
 		$this->headerHtmlOptions = CMap::mergeArray(array('style' => 'width: 120px;'), $this->headerHtmlOptions);
 
-		if (empty($this->cssDropdownClass)) {
-			$this->cssDropdownClass = 'moveDropdown';
+		if (empty($this->cssDropdownClassPart)) {
+			$this->cssDropdownClassPart = 'moveDropdown';
 		}
 
 		// set csrf
@@ -89,8 +93,8 @@ js:function() {
 EOD;
 
 		$function = CJavaScript::encode($jsOnChange);
-		$class = preg_replace('/\s+/', '.', $this->cssDropdownClass);
-		$jqueryJs = "jQuery(document).on('change','#{$this->grid->id} select.{$class}',$function);";
+		$class = preg_replace('/\s+/', '.', $this->cssDropdownClassPart);
+		$jqueryJs = "jQuery(document).on('change','#{$this->grid->id} select.{$class}_{$this->id}',$function);";
 
 		// инициализировать выпадающий список
 		Yii::app()->getClientScript()->registerScript(__CLASS__ . '#' . $this->id, $jqueryJs);
@@ -98,9 +102,25 @@ EOD;
 
 	protected function renderDataCellContent($row, $data) {
 		
+		if($this->algo == self::ALGO_MOVE_TO_MODEL) {
+			if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+				$empty = Yii::t('SorterDropDownColumn', '(move before model)');
+			} else {
+				$empty = Yii::t('SorterDropDownColumn', '(move after model)');
+			}
+		} else if ($this->algo == self::ALGO_MOVE_TO_POSITION) {
+			if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+				$empty = Yii::t('SorterDropDownColumn', '(move before position)');
+			} else {
+				$empty = Yii::t('SorterDropDownColumn', '(move after position)');
+			}
+		} else {
+			throw new CException(Yii::t('SorterDropDownColumn', 'Unexpected algo == ({algo})', array('{algo}' => $this->algo)));
+		}
+		
 		echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
-			'class' => $this->cssDropdownClass,
-			'empty' => 'position',
+			'class' => "{$this->cssDropdownClassPart}_{$this->id}",
+			'empty' => $empty,
 			'data-id' => $data->getPrimaryKey()
 		));
 	}

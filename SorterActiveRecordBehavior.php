@@ -235,13 +235,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param mixed $pk insert after this pk
 	 */
 	public function sorterCurrentMoveAfter($pk) {
-		if ($this->owner->getPrimaryKey() == $pk) { // not need replace after own.
-			return null;
-		}
 
-		$movePlaceAfterModel = $this->owner->model()->findByPk($pk);
-		if (empty($movePlaceAfterModel)) {
-			throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
+		// cross method optimisation
+		if ($pk instanceof CActiveRecord) {
+			$movePlaceAfterModel = $pk;
+
+			if ($this->owner->getPrimaryKey() == $movePlaceAfterModel->getPrimaryKey()) { // not need replace after own.
+				return null;
+			}
+		} else {
+			if ($this->owner->getPrimaryKey() == $pk) { // not need replace after own.
+				return null;
+			}
+
+			$movePlaceAfterModel = $this->owner->model()->findByPk($pk);
+			if (empty($movePlaceAfterModel)) {
+				throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
+			}
 		}
 
 		$beforeModel = $this->owner->model()->find(array(
@@ -283,13 +293,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param mixed $pk insert before this pk
 	 */
 	public function sorterCurrentMoveBefore($pk) {
-		if ($this->owner->getPrimaryKey() == $pk) { // not need replace after own.
-			return null;
-		}
 
-		$movePlaceBeforeModel = $this->owner->model()->findByPk($pk);
-		if (empty($movePlaceBeforeModel)) {
-			throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
+		// cross method optimisation
+		if ($pk instanceof CActiveRecord) {
+			$movePlaceBeforeModel = $pk;
+
+			if ($this->owner->getPrimaryKey() == $movePlaceBeforeModel->getPrimaryKey()) { // not need replace after own.
+				return null;
+			}
+		} else {
+			if ($this->owner->getPrimaryKey() == $pk) { // not need replace after own.
+				return null;
+			}
+
+			$movePlaceBeforeModel = $this->owner->model()->findByPk($pk);
+			if (empty($movePlaceBeforeModel)) {
+				throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
+			}
 		}
 
 		$afterModel = $this->owner->model()->find(array(
@@ -331,16 +351,22 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param integer $position
 	 */
 	public function sorterCurrentMoveToPositionBefore($position) {
-		$model = $this->owner->model()->find(array(
-			'order' => "t.{$this->sortField} ASC",
-			'offset' => $position - 1,
-		));
+		if ($position < 2) {
+			$this->sorterCurrentMoveToBegin();
+		} else {
+			$model = $this->owner->model()->find(array(
+				'order' => "t.{$this->sortField} ASC",
+				'offset' => $position - 1, // 1 - 1 = 0 offset
+			));
 
-		if (empty($model)) {
-			
+			if (empty($model)) {
+				$this->sorterCurrentMoveToEnd();
+			} else {
+				// находим позицию.
+				// делаем moveBefore
+				$this->sorterCurrentMoveBefore($model->getPrimaryKey());
+			}
 		}
-		// находим позицию.
-		// делаем moveBefore
 	}
 
 	/**
@@ -348,8 +374,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param integer $position
 	 */
 	public function sorterCurrentMoveToPositionAfter($position) {
-		// находим позицию.
-		// делаем moveAfter
+		if ($position < 1) {
+			$this->sorterCurrentMoveToBegin();
+		} else {
+			$model = $this->owner->model()->find(array(
+				'order' => "t.{$this->sortField} ASC",
+				'offset' => $position, // min 1 => is 2 record
+			));
+
+			if (empty($model)) {
+				// позиция не найдена. Вставляем в конец.
+				$this->sorterCurrentMoveToEnd();
+			} else {
+				// находим позицию.
+				// делаем moveBefore
+				$this->sorterCurrentMoveBefore($model->getPrimaryKey());
+			}
+		}
 	}
 
 	/**

@@ -15,7 +15,7 @@
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0
  */
-class SorterMoveToModelAction extends CAction {
+class SorterMoveToModelAction extends SorterAbstractMoveAction {
 
 	/**
 	 * 
@@ -23,10 +23,10 @@ class SorterMoveToModelAction extends CAction {
 	 */
 	public function transactionRun(CActiveRecord $model) {
 		/* @var $model SorterActiveRecordBehavior */
-		if ($this->getIsMoveUp()) {
-			$model->sorterCurrentMoveBefore($this->getNumberParam());
+		if ($this->getIsDirectionUp()) {
+			$model->sorterCurrentMoveBefore($this->getParam(true));
 		} else {
-			$model->sorterCurrentMoveAfter($this->getNumberParam());
+			$model->sorterCurrentMoveAfter($this->getParam(true));
 		}
 	}
 

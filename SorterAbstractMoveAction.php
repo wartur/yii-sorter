@@ -79,9 +79,9 @@ abstract class SorterAbstractMoveAction extends CAction {
 	 */
 	public function getParam($post = false) {
 		if ($post) {
-			isset($_POST[self::PARAM]) ? (int) $_POST[self::PARAM] : 1;
+			return isset($_POST[self::PARAM]) ? (int) $_POST[self::PARAM] : 1;
 		} else {
-			isset($_GET[self::PARAM]) ? (int) $_GET[self::PARAM] : 1;
+			return isset($_GET[self::PARAM]) ? (int) $_GET[self::PARAM] : 1;
 		}
 	}
 
