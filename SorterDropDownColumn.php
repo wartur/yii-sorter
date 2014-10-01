@@ -35,7 +35,7 @@ class SorterDropDownColumn extends CGridColumn {
 	 * @var array
 	 * Default: array((0), 1, 2, 3, 4, 5, 6, 7, 8, 9);
 	 */
-	public $sortValues = array();
+	public $sortValues = null;
 
 	/**
 	 * @var string
@@ -43,7 +43,7 @@ class SorterDropDownColumn extends CGridColumn {
 	public $cssDropdownClassPart = null;
 
 	public function init() {
-		if (empty($this->sortValues)) {
+		if ($this->sortValues === null) {
 			if($this->algo == self::ALGO_MOVE_TO_MODEL) {
 				throw new CException(Yii::t('SorterDropDownColumn', 'sortValues is reqired if select algo == ({algo})', array('{algo}' => self::ALGO_MOVE_TO_MODEL)));
 			} else {

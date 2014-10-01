@@ -95,6 +95,51 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public $packageSize = 200;
 
 	/**
+	 * 
+	 * @return type
+	 */
+	public function sorterDbMaxSortField($withoutOwner = false) {
+		$command = $this->owner->getDbConnection()->createCommand()
+				->select("MAX({$this->sortField})")
+				->from($this->owner->tableName());
+
+		if ($withoutOwner !== false) {
+			$command->where("{$this->sorterPrimaryKeyName()} != :pk", array('pk' => $this->owner->getPrimaryKey()));
+		}
+
+		return $command->queryScalar();
+	}
+
+	/**
+	 * 
+	 * @return type
+	 */
+	public function sorterDbMinSortField($withoutOwner = false) {
+		$command = $this->owner->getDbConnection()->createCommand()
+				->select("MIN({$this->sortField})")
+				->from($this->owner->tableName());
+
+		if ($withoutOwner !== false) {
+			$command->where("{$this->sorterPrimaryKeyName()} != :pk", array('pk' => $this->owner->getPrimaryKey()));
+		}
+
+		return $command->queryScalar();
+	}
+
+	/**
+	 * 
+	 * @return type
+	 */
+	public function sorterMathMaxSortField() {
+		$sortFieldBitSizeNatural = 1 << $this->sortFieldBitSize;
+		return $sortFieldBitSizeNatural - 1 + $sortFieldBitSizeNatural;
+	}
+
+	public function sorterPrimaryKeyName() {
+		return $this->owner->getMetaData()->tableSchema->primaryKey;
+	}
+
+	/**
 	 * Swap current record with $model record
 	 * @param CActiveRecord $model
 	 * @throws CException save exception
@@ -170,13 +215,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		if (empty($records)) {
 			$this->insertFirst($onlySet);
+		} elseif (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+			// если это операция вставки новой записи, то она никогда не произойдет так как getPrimaryKey => null
+			$this->sorterSwappWith($records[0]); // swap
+		} elseif (isset($records[0]) && $records[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+			// noop
 		} else {
-			if (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				// если это операция вставки новой записи, то она никогда не произойдет так как getPrimaryKey => null
-				$this->sorterSwappWith($records[0]); // swap
-			} else {
-				$this->moveToBeginFast($records[0]->{$this->sortField}, $onlySet); // standart move
-			}
+			$this->moveToBeginFast($records[0]->{$this->sortField}, $onlySet); // standart move
 		}
 	}
 
@@ -191,13 +236,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		if (empty($records)) {
 			$this->insertFirst($onlySet);
+		} elseif (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+			// если это операция вставки новой записи, то она никогда не произойдет так как getPrimaryKey => null
+			$this->sorterSwappWith($records[0]); // swap
+		} elseif (isset($records[0]) && $records[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+			// noop
 		} else {
-			if (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				// если это операция вставки новой записи, то она никогда не произойдет так как getPrimaryKey => null
-				$this->sorterSwappWith($records[0]); // swap
-			} else {
-				$this->moveToEndFast($records[0]->{$this->sortField}, $onlySet); // standart move
-			}
+			$this->moveToEndFast($records[0]->{$this->sortField}, $onlySet); // standart move
 		}
 	}
 
@@ -461,26 +506,26 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param integer $insertAfterSortValue after normalisation insert current record after this record id
 	 */
 	public function sorterNormalizeSortFieldRegular($upSortFieldValue = null, $downSortFieldValue = null) {
-		
-		if(isset($upSortFieldValue) && isset($downSortFieldValue)) {
+
+		if (isset($upSortFieldValue) && isset($downSortFieldValue)) {
 			// найти эти 2 записи. по одной в каждую сторону и сохранить айдишники
 			$modelUpOld = $this->owner->model()->find(array(
 				'condition' => "t.{$this->sortField} <= :upSortFieldValue",
-				'order' => "t.{$this->sortField} ASC",
+				'order' => "t.{$this->sortField} DESC",
 				'params' => compact('upSortFieldValue')
 			));
-			
+
 			$modelDownOld = $this->owner->model()->find(array(
 				'condition' => "t.{$this->sortField} >= :downSortFieldValue",
 				'order' => "t.{$this->sortField} ASC",
 				'params' => compact('downSortFieldValue')
 			));
-			
-			$afterInsertSortId = empty($modelUpOld) ? 0 : $modelDownOld->getPrimaryKey();
+
+			$afterInsertSortId = empty($modelUpOld) ? 0 : $modelUpOld->getPrimaryKey();
 		} else {
 			$afterInsertSortId = null;
 		}
-		
+
 		// default 15 bit
 		//32767 + 32767 + 1 = 65535;
 		$dischargeSpaceBitSizeNatural = 1 << $this->dischargeSpaceBitSize;
@@ -499,22 +544,34 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		// загружаем еще раз 2 записи по их айдишникам
-		// возвращаем новый миддл между ними
-		if(isset($upSortFieldValue) && isset($downSortFieldValue)) {
-			if(empty($modelUpOld)) {
-				$newUpSortFieldValue = 0;
+		if (isset($upSortFieldValue) && isset($downSortFieldValue)) {
+			// обрабатываем случай нахождения скраю сверху
+			if (empty($modelUpOld)) {
+				$minSortField = $this->sorterDbMinSortField(true);
+				$newUpSortFieldValue = $dischargeSpaceBitSizeNatural < $minSortField ? $minSortField - $dischargeSpaceBitSizeNatural : 0;
+
+				if ($newUpSortFieldValue !== 0) {
+					return $newUpSortFieldValue;
+				}
 			} else {
 				$newUpSortFieldValue = $this->owner->model()->findByPk($modelUpOld->getPrimaryKey())->{$this->sortField};
 			}
-			
-			if(empty($modelDownOld)) {
-				$sortFieldBitSizeNatural = 1 << $this->sortFieldBitSize;
-				$newDownSortFieldValue = $sortFieldBitSizeNatural - 1 + $sortFieldBitSizeNatural;
+
+			// обрабатываем случай нахождения скраю снизу
+			if (empty($modelDownOld)) {
+				$maxSortField = $this->sorterDbMaxSortField(true);
+				$mathMaxSortField = $this->sorterMathMaxSortField();
+
+				if ($mathMaxSortField - $dischargeSpaceBitSizeNatural > $maxSortField) {
+					return $maxSortField + $dischargeSpaceBitSizeNatural;
+				} else {
+					$newDownSortFieldValue = $mathMaxSortField;
+				}
 			} else {
 				$newDownSortFieldValue = $this->owner->model()->findByPk($modelDownOld->getPrimaryKey())->{$this->sortField};
 			}
-			
-			return ($newUpSortFieldValue >> 1) + ($newUpSortFieldValue >> 1) + ($newUpSortFieldValue & $newUpSortFieldValue & 1);
+
+			return ($newUpSortFieldValue >> 1) + ($newDownSortFieldValue >> 1) + ($newUpSortFieldValue & $newDownSortFieldValue & 1);
 		} else {
 			return true;
 		}
@@ -550,16 +607,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		$beforeSortFieldValue = $this->owner->dbConnection->createCommand()
 				->select($this->sortField)
 				->from($this->owner->tableName())
-				->where("{$this->sortField} <= :upRecord")
+				->where("{$this->sortField} <= :upSortFieldValue")
 				->order("{$this->sortField} DESC")
 				->limit(1, $this->dischargeSpaceBitSize * $doubleSearchMultiplier)
-				->queryScalar(compact('upRecord'));
+				->queryScalar(compact('upSortFieldValue'));
 		if (empty($beforeSortFieldValue)) {
 			$usingMin = true;
-			$beforeSortFieldValue = $this->owner->getDbConnection()->createCommand()
-					->select("MIN({$this->sortField})")
-					->from($this->owner->tableName())
-					->queryScalar();
+			$beforeSortFieldValue = $this->sorterDbMinSortField();
 			if (empty($beforeSortFieldValue)) { // 0 or false is bad. stop work!!!
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Unexpected $beforeSortFieldValue({beforeSortFieldValue}). Must be >= 1', array('{beforeSortFieldValue}' => $beforeSortFieldValue)));
 			}
@@ -569,119 +623,118 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		$afterSortFieldValue = $this->owner->dbConnection->createCommand()
 				->select($this->sortField)
 				->from($this->owner->tableName())
-				->where("{$this->sortField} >= :downRecord")
+				->where("{$this->sortField} >= :downSortFieldValue")
 				->order("{$this->sortField} ASC")
 				->limit(1, $this->dischargeSpaceBitSize * $doubleSearchMultiplier)
-				->queryScalar(compact('downRecord'));
+				->queryScalar(compact('downSortFieldValue'));
 		if (empty($afterSortFieldValue)) {
 			$usingMax = true;
-			$afterSortFieldValue = $this->owner->getDbConnection()->createCommand()
-					->select("MAX({$this->sortField})")
-					->from($this->owner->tableName())
-					->queryScalar();
+			$afterSortFieldValue = $this->sorterDbMaxSortField();
 			if (empty($afterSortFieldValue)) { // 0 or false is bad. stop work!!!
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Unexpected $afterSortFieldValue({afterSortFieldValue}). Must be >= 1', array('{afterSortFieldValue}' => $afterSortFieldValue)));
 			}
 		}
 
-		$currentDiff = $afterSortFieldValue - $beforeSortFieldValue;
+		if ($usingMin && $usingMax) { // мы взяли максимум сверху и снизу. Выполним регулярную нормализацию для большего эффекта
+			return $this->sorterNormalizeSortFieldRegular($upSortFieldValue, $downSortFieldValue);
+		} else {
 
-		// find local discharge space bit size
-		$findDiff = $findBitSpaceSize = null;
-		for ($bitSpaceSize = $this->dischargeSpaceBitSize - 1; $bitSpaceSize >= $this->minLocalDischargeSpaceBitSize; --$bitSpaceSize) { // от меньшего шага к большему
-			$naturalSpaceSize = 1 << $bitSpaceSize;
+			$currentDiff = $afterSortFieldValue - $beforeSortFieldValue;
 
-			$localSearchDiffSize = $this->dischargeSpaceBitSize * $doubleSearchMultiplier * 2 * $naturalSpaceSize + $naturalSpaceSize;
+			// find local discharge space bit size
+			$findDiff = $findBitSpaceSize = null;
+			for ($bitSpaceSize = $this->dischargeSpaceBitSize - 1; $bitSpaceSize >= $this->minLocalDischargeSpaceBitSize; --$bitSpaceSize) { // от меньшего шага к большему
+				$naturalSpaceSize = 1 << $bitSpaceSize;
 
-			if ($localSearchDiffSize < $currentDiff) {
-				$findDiff = $localSearchDiffSize;
-				$findBitSpaceSize = $bitSpaceSize;
-				break;
+				$localSearchDiffSize = $this->dischargeSpaceBitSize * $doubleSearchMultiplier * 2 * $naturalSpaceSize + $naturalSpaceSize;
+
+				if ($localSearchDiffSize < $currentDiff) {
+					$findDiff = $localSearchDiffSize;
+					$findBitSpaceSize = $bitSpaceSize;
+					break;
+				}
 			}
-		}
 
-		// not find local space. It's too large degradation, need deep search
-		if ($findDiff === null) {
-			if ($usingMin && $usingMax) { // is maximum deep search
-				return $this->sorterNormalizeSortFieldRegular($upSortFieldValue, $downSortFieldValue);
-			} else {
+			// not find local space. It's too large degradation, need deep search
+			if ($findDiff === null) {
 				// next deep search level
 				return $this->sorterNormalizeSortFieldOnthefly($upSortFieldValue, $downSortFieldValue, $doubleSearchMultiplier + 1);
+			} else { // normalize procedure
+				throw new CException('not implemented');
+
+				$newElementPlaceSortValue = ($beforeSortFieldValue + $afterSortFieldValue) >> 1;
+				// set sort field to negative for selected records, for unique conflict
+				$this->owner->model()->updateAll(array($this->sortField => new CDbExpression("-t.{$this->sortField}")), array(
+					"t.{$this->sortField} >= :beforeSortFieldValue AND t.{$this->sortField} <= :afterSortFieldValue",
+					'params' => compact('beforeSortFieldValue', 'afterSortFieldValue'),
+				));
+
+				// set all vars as negative. order will negative too.
+				$beforeSortFieldValueNegative = -$beforeSortFieldValue;
+				$afterSortFieldValueNegative = -$afterSortFieldValue;
+				$upRecordNegative = -$upSortFieldValue + 1;
+				$downRecordNegative = -$downSortFieldValue - 1;
+				$naturalFindBitSpaceSize = 1 << $findBitSpaceSize;
+
+				$condition = new CDbCriteria();
+				$condition->limit = $this->packageSize;
+
+				// *** PACKAGED UPDATE ALGORITHM FOR UP RECORD *** ///
+				$condition->addCondition(":upRecordNegative < t.{$this->sortField} AND t.{$this->sortField} <= :beforeSortFieldValueNegative");
+				$condition->order = "t.{$this->sortField} ASC";
+				$condition->params = compact('upRecordNegative', 'beforeSortFieldValueNegative');
+
+				$newElementPlaceSortValueCopyUp = $newElementPlaceSortValue;
+				do { // package
+					$models = $this->owner->model()->findAll($condition);
+
+					$lastUpRecordNegative = null;
+					foreach ($models as $entry) { // update
+						$newElementPlaceSortValueCopyUp += $naturalFindBitSpaceSize;
+						$lastUpRecordNegative = $entry->{$this->sortField};
+						$entry->{$this->sortField} = $newElementPlaceSortValueCopyUp;
+						if (!$entry->save()) {
+							throw new CException(Yii::t('SorterActiveRecordBehavior', 'sorterNormalizeSortFieldEmergency model save error. Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
+						}
+					}
+
+					// next package
+					if (isset($lastUpRecordNegative)) {
+						$condition->params['upRecordNegative'] = $lastUpRecordNegative; // is more faster then $condition->offset += $this->pacakgeSize
+					} else {
+						break; // if !isset then count($models) = 0
+					}
+				} while (count($models) == $this->packageSize);
+
+				// *** PACKAGED UPDATE ALGORITHM FOR DOWN RECORD*** ///
+				$condition->addCondition(":downRecordNegative > t.{$this->sortField} AND t.{$this->sortField} >= :afterSortFieldValueNegative");
+				$condition->order = "t.{$this->sortField} DESC";
+				$condition->params = compact('downRecordNegative', 'afterSortFieldValueNegative');
+
+				$newElementPlaceSortValueCopyDown = $newElementPlaceSortValue;
+				do { // package
+					$models = $this->owner->model()->findAll($condition);
+
+					$lastDownRecordNegative = null;
+					foreach ($models as $entry) { // update
+						$newElementPlaceSortValueCopyDown -= $naturalFindBitSpaceSize;
+						$lastDownRecordNegative = $entry->{$this->sortField};
+						$entry->{$this->sortField} = $newElementPlaceSortValueCopyDown;
+						if (!$entry->save()) {
+							throw new CException(Yii::t('SorterActiveRecordBehavior', 'sorterNormalizeSortFieldEmergency model save error. Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
+						}
+					}
+
+					// next package
+					if (isset($lastDownRecordNegative)) {
+						$condition->params['downRecordNegative'] = $lastDownRecordNegative; // is more faster then $condition->offset += $this->pacakgeSize
+					} else {
+						break; // if !isset then count($models) = 0
+					}
+				} while (count($models) == $this->packageSize); // if count less, then is end
+
+				return $newElementPlaceSortValue;
 			}
-		} else { // normalize procedure
-			$newElementPlaceSortValue = ($beforeSortFieldValue + $afterSortFieldValue) >> 1;
-
-			// set sort field to negative for selected records, for unique conflict
-			$this->owner->model()->updateAll(array($this->sortField => new CDbExpression("-t.{$this->sortField}")), array(
-				"t.{$this->sortField} >= :beforeSortFieldValue AND t.{$this->sortField} <= :afterSortFieldValue",
-				'params' => compact('beforeSortFieldValue', 'afterSortFieldValue'),
-			));
-
-			// set all vars as negative. order will negative too.
-			$beforeSortFieldValueNegative = -$beforeSortFieldValue;
-			$afterSortFieldValueNegative = -$afterSortFieldValue;
-			$upRecordNegative = -$upSortFieldValue + 1;
-			$downRecordNegative = -$downSortFieldValue - 1;
-			$naturalFindBitSpaceSize = 1 << $findBitSpaceSize;
-
-			$condition = new CDbCriteria();
-			$condition->limit = $this->packageSize;
-
-			// *** PACKAGED UPDATE ALGORITHM FOR UP RECORD *** ///
-			$condition->addCondition(":upRecordNegative < t.{$this->sortField} AND t.{$this->sortField} <= :beforeSortFieldValueNegative");
-			$condition->order = "t.{$this->sortField} ASC";
-			$condition->params = compact('upRecordNegative', 'beforeSortFieldValueNegative');
-
-			$newElementPlaceSortValueCopyUp = $newElementPlaceSortValue;
-			do { // package
-				$models = $this->owner->model()->findAll($condition);
-
-				$lastUpRecordNegative = null;
-				foreach ($models as $entry) { // update
-					$newElementPlaceSortValueCopyUp += $naturalFindBitSpaceSize;
-					$lastUpRecordNegative = $entry->{$this->sortField};
-					$entry->{$this->sortField} = $newElementPlaceSortValueCopyUp;
-					if (!$entry->save()) {
-						throw new CException(Yii::t('SorterActiveRecordBehavior', 'sorterNormalizeSortFieldEmergency model save error. Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
-					}
-				}
-
-				// next package
-				if (isset($lastUpRecordNegative)) {
-					$condition->params['upRecordNegative'] = $lastUpRecordNegative; // is more faster then $condition->offset += $this->pacakgeSize
-				} else {
-					break; // if !isset then count($models) = 0
-				}
-			} while (count($models) == $this->packageSize);
-
-			// *** PACKAGED UPDATE ALGORITHM FOR DOWN RECORD*** ///
-			$condition->addCondition(":downRecordNegative > t.{$this->sortField} AND t.{$this->sortField} >= :afterSortFieldValueNegative");
-			$condition->order = "t.{$this->sortField} DESC";
-			$condition->params = compact('downRecordNegative', 'afterSortFieldValueNegative');
-
-			$newElementPlaceSortValueCopyDown = $newElementPlaceSortValue;
-			do { // package
-				$models = $this->owner->model()->findAll($condition);
-
-				$lastDownRecordNegative = null;
-				foreach ($models as $entry) { // update
-					$newElementPlaceSortValueCopyDown -= $naturalFindBitSpaceSize;
-					$lastDownRecordNegative = $entry->{$this->sortField};
-					$entry->{$this->sortField} = $newElementPlaceSortValueCopyDown;
-					if (!$entry->save()) {
-						throw new CException(Yii::t('SorterActiveRecordBehavior', 'sorterNormalizeSortFieldEmergency model save error. Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
-					}
-				}
-
-				// next package
-				if (isset($lastDownRecordNegative)) {
-					$condition->params['downRecordNegative'] = $lastDownRecordNegative; // is more faster then $condition->offset += $this->pacakgeSize
-				} else {
-					break; // if !isset then count($models) = 0
-				}
-			} while (count($models) == $this->packageSize); // if count less, then is end
-
-			return $newElementPlaceSortValue;
 		}
 	}
 
@@ -753,20 +806,20 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 			foreach ($models as $entry) {
 				$newFromSearch = $entry->{$this->sortField};
-				
+
 				// save one query
 				if (isset($afterInsertSortId) && $entry->getPrimaryKey() == $this->owner->getPrimaryKey()) {
 					continue;
 				}
-				
+
 				$entry->{$this->sortField} = $currentSortNatural;
 				$currentSortNatural += $newDischargeSpaceBitSizeNatural;
-				if(!$entry->save()) {
+				if (!$entry->save()) {
 					throw new CException(Yii::t('SorterActiveRecordBehavior', 'distributeNewDischargeSpaceBitSize save error. Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
 				}
-				
+
 				// if it part of on the fly algorithm
-				if (isset($afterInsertSortId) && $entry->getPrimaryKey() == $afterInsertSortId->getPrimaryKey()) {
+				if (isset($afterInsertSortId) && $entry->getPrimaryKey() == $afterInsertSortId) {
 					$currentSortNatural += $newDischargeSpaceBitSizeNatural;
 				}
 			}
@@ -801,8 +854,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 	protected function moveToEndFast($max, $onlySet = false) {
 		$dischargeSpaceBitSizeNatural = 1 << $this->dischargeSpaceBitSize;
-		$sortFieldBitSizeNatural = 1 << $this->sortFieldBitSize;
-		$maxSortValue = $sortFieldBitSizeNatural - 1 + $sortFieldBitSizeNatural;
+		$maxSortValue = $this->sorterMathMaxSortField();
 		if (gettype($maxSortValue) != 'integer') { // check out of bits
 			throw new CException(Yii::t('SorterActiveRecordBehavior', 'Precision error $maxSortValue({maxSortValue}) is {type}. Expect integer', array('{data}' => $maxSortValue, '{type}' => gettype($maxSortValue))));
 		}
@@ -871,6 +923,42 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		if ($this->owner->getIsNewRecord()) {
 			$this->sorterSetNextInsertSortValue();
+		}
+	}
+
+	/**
+	 * Валидации на правильность настройки бихевиора
+	 * @param CEvent $event
+	 */
+	public function afterConstruct($event) {
+		parent::afterConstruct($event);
+
+		// Только в режиме отладки. На продакшене это бессмысленная трата электичества
+		if (YII_DEBUG) {
+			if (PHP_INT_SIZE == 4 && $this->sortFieldBitSize > 30) {
+				// TODO: указанная битное смещение превышает возможности 32 битной арихтектуры
+			}
+
+			if (PHP_INT_SIZE == 8 && $this->sortFieldBitSize > 62) {
+				// TODO: указанная битное смещение превышает возможности 64 битной арихтектуры
+			}
+
+			if ($this->sortFieldBitSize < 0) {
+				// TODO: разрядность не может быть отрицательной
+			}
+
+			if ($this->dischargeSpaceBitSize < 0 || $this->dischargeSpaceBitSize >= $this->sortFieldBitSize) {
+				// TODO: неверная настройка поля dischargeSpaceBitSize, должно быть больше ноля и меньше sortFieldBitSize
+			}
+
+			if ($this->minLocalDischargeSpaceBitSize < 0 || $this->minLocalDischargeSpaceBitSize > $this->dischargeSpaceBitSize) {
+				// TODO: неверная настройка поля minLocalDischargeSpaceBitSize, должно быть больше ноля и меньше dischargeSpaceBitSize
+			}
+
+			// проверка типа первичного ключа. Библиотека не умеет работать с составными первичными ключами
+			if (!is_string($this->sorterPrimaryKeyName())) {
+				// TODO: библиотека не умеет работатьс составным первичным ключем
+			}
 		}
 	}
 
