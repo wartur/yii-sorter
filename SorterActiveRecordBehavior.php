@@ -138,6 +138,15 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public function sorterPrimaryKeyName() {
 		return $this->owner->getMetaData()->tableSchema->primaryKey;
 	}
+	
+	public function sorterRealSpaceNatural() {
+		return 1 << ($this->sortFieldBitSize - $this->dischargeSpaceBitSize);
+	}
+	
+	public function sorterMaxCountOfRecord() {
+		$realSpaceNatural = $this->sorterRealSpaceNatural();
+		return $realSpaceNatural - 1 + $realSpaceNatural;
+	}
 
 	/**
 	 * Swap current record with $model record
@@ -527,9 +536,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		// default 15 bit
-		//32767 + 32767 + 1 = 65535;
-		$dischargeSpaceBitSizeNatural = 1 << $this->dischargeSpaceBitSize;
-		$maxNamberOfRecord = $dischargeSpaceBitSizeNatural - 1 + $dischargeSpaceBitSizeNatural;
+		//32767 - 1 + 32767 = 65535;
+		$realSpaceNatural = 1 << ($this->sortFieldBitSize - $this->dischargeSpaceBitSize);
+		$maxNamberOfRecord = $realSpaceNatural - 1 + $realSpaceNatural;
 		$currentRecordCount = $this->owner->model()->count();
 
 		// if current is new значит приделать к количеству
@@ -538,9 +547,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		if ($maxNamberOfRecord < $currentRecordCount) {
-			$this->normalizeSortFieldExtreme($currentRecordCount, $afterInsertSortId);
+			$newDischargeSpaceBitSize = $this->normalizeSortFieldExtreme($currentRecordCount, $afterInsertSortId);
 		} else {
 			$this->distributeNewDischargeSpaceBitSize($this->dischargeSpaceBitSize, $currentRecordCount, $afterInsertSortId);
+			$newDischargeSpaceBitSize = $this->dischargeSpaceBitSize;
 		}
 
 		// загружаем еще раз 2 записи по их айдишникам
@@ -548,7 +558,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			// обрабатываем случай нахождения скраю сверху
 			if (empty($modelUpOld)) {
 				$minSortField = $this->sorterDbMinSortField(true);
-				$newUpSortFieldValue = $dischargeSpaceBitSizeNatural < $minSortField ? $minSortField - $dischargeSpaceBitSizeNatural : 0;
+				$newDischargeSpaceBitSizeNatural = 1 << $newDischargeSpaceBitSize;
+				$newUpSortFieldValue = $newDischargeSpaceBitSizeNatural < $minSortField ? $minSortField - $newDischargeSpaceBitSizeNatural : 0;
 
 				if ($newUpSortFieldValue !== 0) {
 					return $newUpSortFieldValue;
@@ -561,9 +572,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			if (empty($modelDownOld)) {
 				$maxSortField = $this->sorterDbMaxSortField(true);
 				$mathMaxSortField = $this->sorterMathMaxSortField();
+				$newDischargeSpaceBitSizeNatural = 1 << $newDischargeSpaceBitSize;
 
-				if ($mathMaxSortField - $dischargeSpaceBitSizeNatural > $maxSortField) {
-					return $maxSortField + $dischargeSpaceBitSizeNatural;
+				if ($mathMaxSortField - $newDischargeSpaceBitSizeNatural > $maxSortField) {
+					return $maxSortField + $newDischargeSpaceBitSizeNatural;
 				} else {
 					$newDownSortFieldValue = $mathMaxSortField;
 				}
@@ -573,7 +585,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 			return ($newUpSortFieldValue >> 1) + ($newDownSortFieldValue >> 1) + ($newUpSortFieldValue & $newDownSortFieldValue & 1);
 		} else {
-			return true;
+			return null;
 		}
 	}
 
@@ -760,11 +772,14 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		$sortFieldNaturalSizeMax = 1 << $this->sortFieldBitSize;
 		$findBitSpaceSize = null;
+		
+		// расчет за счет будущего элемента
+		$plusAfterInsertPlace = (isset($afterInsertSortId) && $this->owner->isNewRecord) ? 1 : 0;
 
 		// find local discharge space bit size in global scope
 		// for extreme sutuation min local dischaged space less then minLocalDischargeSpaceBitSize
 		for ($bitSpaceSize = $this->dischargeSpaceBitSize - 1; $bitSpaceSize >= 1; --$bitSpaceSize) { // от меньшего шага к большему
-			if ($sortFieldNaturalSizeMax > ((1 << $bitSpaceSize) * $currentRecordCount)) {
+			if ($sortFieldNaturalSizeMax > ((1 << $bitSpaceSize) * $currentRecordCount) + $plusAfterInsertPlace) {
 				$findBitSpaceSize = $bitSpaceSize;
 				break;
 			}
@@ -776,6 +791,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		$this->distributeNewDischargeSpaceBitSize($findBitSpaceSize, $currentRecordCount, $afterInsertSortId);
+		
+		return $findBitSpaceSize;
 	}
 
 	protected function distributeNewDischargeSpaceBitSize($newDischargeSpaceBitSize, $currentRecordCount, $afterInsertSortId) {
@@ -796,9 +813,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		$condition->limit = $this->packageSize;
 		$condition->params = array(
 			'newFromSearch' => 0,
-			'maxSortField' => -($sortFieldBitSizeNatural - 1 + $sortFieldBitSizeNatural)
+			'maxSortField' => - PHP_INT_MAX - 1
 		);
-
+		
 		do {
 			$models = $this->owner->model()->findAll($condition);
 
