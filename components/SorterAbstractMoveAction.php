@@ -70,7 +70,7 @@ abstract class SorterAbstractMoveAction extends CAction {
 			$this->transactionRun($model);
 
 			if ($this->useFlashHighlight) {
-				Yii::app()->user->setFlash(self::FLASH_HIGHLIGHT_PREFIX . '.' . $id);
+				//Yii::app()->user->setFlash(self::FLASH_HIGHLIGHT_PREFIX . '.' . $id);
 			}
 
 			$transaction->commit();
@@ -119,9 +119,9 @@ abstract class SorterAbstractMoveAction extends CAction {
 	public function registerJsFlashHighlight() {
 		$am = Yii::app()->assetManager; /* @var $am CAssetManager */
 		$cs = Yii::app()->clienScript; /* @var $cs CClientScript */
-		
+
 		$cs->registerCoreScript('jquery.ui');
-		
+
 		$am->publish($path);
 	}
 

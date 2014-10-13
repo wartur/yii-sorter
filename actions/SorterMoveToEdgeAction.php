@@ -8,6 +8,7 @@
  * @link https://github.com/wartur/yii-sorter-behavior
  * @license New BSD license
  */
+Yii::import('sorter.components.SorterAbstractMoveAction', true);
 
 /**
  * SorterMoveToEdgeAction

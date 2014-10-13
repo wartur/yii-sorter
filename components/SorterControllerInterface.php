@@ -10,7 +10,8 @@
  */
 
 /**
- * Controller interface for work with Sorter Actions
+ * Controller interface for work with Sorter Actions.
+ * You can use this interface or SorterControllerBehavior
  * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0

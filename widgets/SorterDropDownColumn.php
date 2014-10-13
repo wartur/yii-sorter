@@ -8,7 +8,8 @@
  * @link https://github.com/wartur/yii-sorter-behavior
  * @license New BSD license
  */
-Yii::import('zii.widgets.grid.CGridColumn');
+Yii::import('zii.widgets.grid.CGridColumn', true);
+Yii::import('sorter.components.SorterAbstractMoveAction');
 
 /**
  * Dropdown column for simple work with SorterActiveRecordBehavior
@@ -25,7 +26,7 @@ class SorterDropDownColumn extends CGridColumn {
 	 * @var integer алгоритм работы
 	 */
 	public $algo = self::ALGO_MOVE_TO_POSITION;
-	
+
 	/**
 	 * @var integer
 	 */
@@ -44,10 +45,10 @@ class SorterDropDownColumn extends CGridColumn {
 
 	public function init() {
 		if ($this->sortValues === null) {
-			if($this->algo == self::ALGO_MOVE_TO_MODEL) {
+			if ($this->algo == self::ALGO_MOVE_TO_MODEL) {
 				throw new CException(Yii::t('SorterDropDownColumn', 'sortValues is reqired if select algo == ({algo})', array('{algo}' => self::ALGO_MOVE_TO_MODEL)));
 			} else {
-				if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+				if ($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
 					$combine = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
 				} else {
 					$combine = array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -71,10 +72,10 @@ class SorterDropDownColumn extends CGridColumn {
 		} else {
 			$csrf = '';
 		}
-		
+
 		$paramConst = SorterAbstractMoveAction::PARAM;
 		$dataParams = "\n\t\tdata:{ '{$paramConst}': $(this).val() {$csrf} },";
-		
+
 		$jsOnChange = <<<EOD
 js:function() {
 	jQuery('#{$this->grid->id}').yiiGridView('update', {
@@ -101,15 +102,15 @@ EOD;
 	}
 
 	protected function renderDataCellContent($row, $data) {
-		
-		if($this->algo == self::ALGO_MOVE_TO_MODEL) {
-			if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+
+		if ($this->algo == self::ALGO_MOVE_TO_MODEL) {
+			if ($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
 				$empty = Yii::t('SorterDropDownColumn', '(move before model)');
 			} else {
 				$empty = Yii::t('SorterDropDownColumn', '(move after model)');
 			}
 		} else if ($this->algo == self::ALGO_MOVE_TO_POSITION) {
-			if($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
+			if ($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
 				$empty = Yii::t('SorterDropDownColumn', '(move before position)');
 			} else {
 				$empty = Yii::t('SorterDropDownColumn', '(move after position)');
@@ -117,7 +118,7 @@ EOD;
 		} else {
 			throw new CException(Yii::t('SorterDropDownColumn', 'Unexpected algo == ({algo})', array('{algo}' => $this->algo)));
 		}
-		
+
 		echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
 			'class' => "{$this->cssDropdownClassPart}_{$this->id}",
 			'empty' => $empty,

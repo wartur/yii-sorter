@@ -8,7 +8,8 @@
  * @link https://github.com/wartur/yii-sorter-behavior
  * @license New BSD license
  */
-Yii::import('zii.widgets.grid.CButtonColumn');
+Yii::import('zii.widgets.grid.CButtonColumn', true);
+Yii::import('sorter.components.SorterAbstractMoveAction');
 
 /**
  * SorterButtonColumn
