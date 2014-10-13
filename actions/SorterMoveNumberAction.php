@@ -9,6 +9,8 @@
  * @license New BSD license
  */
 
+Yii::import('sorter.', true);
+
 /**
  * SorterMoveNumberAction
  * 

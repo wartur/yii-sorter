@@ -40,6 +40,17 @@ abstract class SorterAbstractMoveAction extends CAction {
 	/**
 	 * 
 	 */
+	const FLASH_HIGHLIGHT_PREFIX = 'sorterFlash';
+
+	/**
+	 *
+	 * @var boolean
+	 */
+	public $useFlashHighlight = true;
+
+	/**
+	 * 
+	 */
 	abstract public function transactionRun(CActiveRecord $model);
 
 	/**
@@ -57,6 +68,10 @@ abstract class SorterAbstractMoveAction extends CAction {
 			$model = $this->controller->loadModel($id);
 
 			$this->transactionRun($model);
+
+			if ($this->useFlashHighlight) {
+				Yii::app()->user->setFlash(self::FLASH_HIGHLIGHT_PREFIX . '.' . $id);
+			}
 
 			$transaction->commit();
 		} catch (Exception $e) {
@@ -99,6 +114,15 @@ abstract class SorterAbstractMoveAction extends CAction {
 	 */
 	public function getIsDirectionUp() {
 		return $this->getDirection() === self::DIRECTION_UP;
+	}
+
+	public function registerJsFlashHighlight() {
+		$am = Yii::app()->assetManager; /* @var $am CAssetManager */
+		$cs = Yii::app()->clienScript; /* @var $cs CClientScript */
+		
+		$cs->registerCoreScript('jquery.ui');
+		
+		$am->publish($path);
 	}
 
 }
