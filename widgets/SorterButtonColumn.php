@@ -20,6 +20,12 @@ Yii::import('sorter.components.SorterAbstractMoveAction');
 class SorterButtonColumn extends CButtonColumn {
 
 	/**
+	 *
+	 * @var Sorter
+	 */
+	public $sorter = null;
+
+	/**
 	 * @var integer
 	 */
 	public $numberUp = 5;
@@ -38,6 +44,8 @@ class SorterButtonColumn extends CButtonColumn {
 	public $template = '{begin} / {upNumber} / {up} / {down} / {downNumber} / {end}';
 
 	public function init() {
+		$this->sorter = Yii::app()->sorter;
+
 		// only head for optimize css
 		$this->headerHtmlOptions = CMap::mergeArray(array('style' => 'width: 170px;'), $this->headerHtmlOptions);
 

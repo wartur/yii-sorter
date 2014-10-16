@@ -20,17 +20,17 @@ abstract class SorterAbstractMoveAction extends CAction {
 	/**
 	 * 
 	 */
-	const DIRECTION_UP = 0;
+	const DIRECTION_UP = 'up';
 
 	/**
 	 * 
 	 */
-	const DIRECTION_DOWN = 1;
+	const DIRECTION_DOWN = 'down';
 
 	/**
 	 * 
 	 */
-	const DIRECTION = 'o';
+	const DIRECTION = 'd';
 
 	/**
 	 * 
@@ -66,11 +66,14 @@ abstract class SorterAbstractMoveAction extends CAction {
 		$transaction = Yii::app()->db->beginTransaction();
 		try {
 			$model = $this->controller->loadModel($id);
+			/* @var $model CActiveRecord */
 
 			$this->transactionRun($model);
 
-			if ($this->useFlashHighlight) {
-				//Yii::app()->user->setFlash(self::FLASH_HIGHLIGHT_PREFIX . '.' . $id);
+			$sorter = Yii::app()->sorter;
+			/* @var $sorter Sorter */
+			if ($sorter->useFlashHighlight && !$model->isNewRecord) {
+				$sorter->setFlashHighlight(get_class($model), $model->getPrimaryKey());
 			}
 
 			$transaction->commit();
@@ -92,11 +95,13 @@ abstract class SorterAbstractMoveAction extends CAction {
 	 * 
 	 * @return integer
 	 */
-	public function getParam($post = false) {
-		if ($post) {
-			return isset($_POST[self::PARAM]) ? (int) $_POST[self::PARAM] : 1;
+	public function getParam($post = false, $convertToInt = true) {
+		$source = $post === false ? $_GET : $_POST;
+
+		if (empty($source[self::PARAM])) {
+			throw new CHttpException(400, Yii::t('sorter', 'Bad param. param is empty use source({source})', array('source' => $post === false ? 'GET' : 'POST')));
 		} else {
-			return isset($_GET[self::PARAM]) ? (int) $_GET[self::PARAM] : 1;
+			return $convertToInt ? (int) $source[self::PARAM] : $source[self::PARAM];
 		}
 	}
 
@@ -105,7 +110,11 @@ abstract class SorterAbstractMoveAction extends CAction {
 	 * @return integer
 	 */
 	public function getDirection() {
-		return isset($_GET[self::DIRECTION]) ? (int) $_GET[self::DIRECTION] : self::DIRECTION_UP; // The default move up
+		if (isset($_GET[self::DIRECTION]) && $_GET[self::DIRECTION] == self::DIRECTION_UP || $_GET[self::DIRECTION] == self::DIRECTION_DOWN) {
+			return $_GET[self::DIRECTION];
+		} else {
+			throw new CHttpException(400, Yii::t('sorter', 'Bad param. direction({direction}), support only ({up}) and ({down})', array('direction' => empty($_GET[self::DIRECTION]) ? '@empty' : $_GET[self::DIRECTION], 'up' => self::DIRECTION_UP, 'down' => self::DIRECTION_DOWN)));
+		}
 	}
 
 	/**
@@ -114,15 +123,6 @@ abstract class SorterAbstractMoveAction extends CAction {
 	 */
 	public function getIsDirectionUp() {
 		return $this->getDirection() === self::DIRECTION_UP;
-	}
-
-	public function registerJsFlashHighlight() {
-		$am = Yii::app()->assetManager; /* @var $am CAssetManager */
-		$cs = Yii::app()->clienScript; /* @var $cs CClientScript */
-
-		$cs->registerCoreScript('jquery.ui');
-
-		$am->publish($path);
 	}
 
 }

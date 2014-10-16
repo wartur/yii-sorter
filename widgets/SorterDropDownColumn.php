@@ -42,6 +42,12 @@ class SorterDropDownColumn extends CGridColumn {
 	 * @var string
 	 */
 	public $cssDropdownClassPart = null;
+	
+	/**
+	 *
+	 * @var type 
+	 */
+	public $packToLink = false;
 
 	public function init() {
 		if ($this->sortValues === null) {
@@ -99,6 +105,13 @@ EOD;
 
 		// инициализировать выпадающий список
 		Yii::app()->getClientScript()->registerScript(__CLASS__ . '#' . $this->id, $jqueryJs);
+		
+		if($this->packToLink) {
+			// сгенерировать htmlкод и зарегистрировать в js в качестве шаблона
+			// зарегистрировать код, преобразующий линк столбца в htmlкод
+			// - требуется преобразовать шаблон и добавить нужные параметры.
+			// - да при нажатии на линк, надо удалять другие подобные селекты, то есть генерировать надо их не просто так
+		}
 	}
 
 	protected function renderDataCellContent($row, $data) {
@@ -119,11 +132,15 @@ EOD;
 			throw new CException(Yii::t('SorterDropDownColumn', 'Unexpected algo == ({algo})', array('{algo}' => $this->algo)));
 		}
 
-		echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
-			'class' => "{$this->cssDropdownClassPart}_{$this->id}",
-			'empty' => $empty,
-			'data-id' => $data->getPrimaryKey()
-		));
+		if($this->packToLink) {
+			// тут вывести линк с доп данными которые далее будут резолвиться в селект
+		} else {
+			echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
+				'class' => "{$this->cssDropdownClassPart}_{$this->id}",
+				'empty' => $empty,
+				'data-id' => $data->getPrimaryKey()
+			));
+		}
 	}
 
 }
