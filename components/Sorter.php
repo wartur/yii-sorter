@@ -145,21 +145,4 @@ class Sorter extends CApplicationComponent {
 		return $fullCallback ? "js:function(){{$js}} " : " ;{$js}; ";
 	}
 
-	/**
-	 * 
-	 */
-	public function registerClientScript() {
-		if ($this->scriptIsRegister === false) {
-			$am = Yii::app()->assetManager; /* @var $am CAssetManager */
-			$cs = Yii::app()->clientScript; /* @var $cs CClientScript */
-
-			$publicPath = $am->publish(Yii::getPathOfAlias('sorter.assets'));
-
-			$cs->registerCoreScript('jquery.ui');
-			$cs->registerScriptFile($publicPath . "/sorter.js");
-
-			$this->scriptIsRegister = true;
-		}
-	}
-
 }

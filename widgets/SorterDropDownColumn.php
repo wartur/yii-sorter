@@ -30,7 +30,7 @@ class SorterDropDownColumn extends CGridColumn {
 	/**
 	 * @var integer
 	 */
-	public $direction = SorterAbstractMoveAction::DIRECTION_UP;
+	public $direction = 'up';
 
 	/**
 	 * @var array
@@ -42,12 +42,38 @@ class SorterDropDownColumn extends CGridColumn {
 	 * @var string
 	 */
 	public $cssDropdownClassPart = null;
-	
+
+	/**
+	 * @var type 
+	 */
+	public $emptyText = null;
+
+	/**
+	 * @var string 
+	 */
+	public $onErrorMoveJsExpression = null;
+
 	/**
 	 *
 	 * @var type 
 	 */
-	public $packToLink = false;
+	public $packToLink = true;
+
+	/**
+	 * @var type 
+	 */
+	protected $renderClass = null;
+
+	/**
+	 * @var type 
+	 */
+	protected $topDivRenderId = null;
+
+
+	/**
+	 * @var type 
+	 */
+	protected $dropDownRenderId = null;
 
 	public function init() {
 		if ($this->sortValues === null) {
@@ -64,7 +90,7 @@ class SorterDropDownColumn extends CGridColumn {
 		}
 
 		// only head for optimize css
-		$this->headerHtmlOptions = CMap::mergeArray(array('style' => 'width: 120px;'), $this->headerHtmlOptions);
+		$this->headerHtmlOptions = CMap::mergeArray(array('style' => 'width: 160px;'), $this->headerHtmlOptions);
 
 		if (empty($this->cssDropdownClassPart)) {
 			$this->cssDropdownClassPart = 'moveDropdown';
@@ -82,65 +108,112 @@ class SorterDropDownColumn extends CGridColumn {
 		$paramConst = SorterAbstractMoveAction::PARAM;
 		$dataParams = "\n\t\tdata:{ '{$paramConst}': $(this).val() {$csrf} },";
 
+		$onErrorMoveMessage = isset($this->onErrorMoveMessage) ? $this->onErrorMoveMessage : Yii::t('SorterButtonColumn', 'Move error');
+
 		$jsOnChange = <<<EOD
-js:function() {
+function() {
 	jQuery('#{$this->grid->id}').yiiGridView('update', {
 		type: 'POST',
-		url: '{$this->grid->controller->createUrl($this->algo, array(SorterAbstractMoveAction::DIRECTION => $this->direction))}'+'/id/'+$(this).data('id'),$dataParams
+		url: $(this).data('url'),$dataParams
 		success: function(data) {
 			jQuery('#{$this->grid->id}').yiiGridView('update');
 			return false;
 		},
 		error: function(XHR) {
-			return 'Произошла ошибка';
+			return '{$onErrorMoveMessage}';
 		}
 	});
+	$(this).attr('disabled', 'disabled');
 	return false;
 }
 EOD;
 
-		$function = CJavaScript::encode($jsOnChange);
 		$class = preg_replace('/\s+/', '.', $this->cssDropdownClassPart);
-		$jqueryJs = "jQuery(document).on('change','#{$this->grid->id} select.{$class}_{$this->id}',$function);";
+		$this->renderClass = "{$class}_{$this->id}";
+		$this->dropDownRenderId = "dropDown_{$this->id}";
+		$resultJs = "jQuery(document).on('change','#{$this->grid->id} select.{$this->renderClass}',$jsOnChange);";
 
+		if ($this->packToLink) {
+			$resultJs .= "\n";
+			$this->topDivRenderId = "topDiv_{$class}_{$this->id}";
+
+			$resultJs .= <<<EOD
+jQuery(document).on('mousedown','#{$this->grid->id} a.{$this->renderClass}',function() {
+	_select = $($('#{$this->topDivRenderId}').html()).attr('data-url', $(this).attr("href"));
+	$(this).after(_select);
+	$(this).hide();
+	_select.simulate('mousedown');
+	return false;
+});\n
+EOD;
+			
+			$resultJs .= <<<EOD
+jQuery(document).on('focusout','#{$this->grid->id} select.{$this->renderClass}',function(){
+	$(this).parent().find('a.{$this->renderClass}').show();
+	$(this).remove();
+	return false;
+});
+EOD;
+			// зарегистриуем либу для поддержки автовыпадения селекта
+			$am = Yii::app()->assetManager; /* @var $am CAssetManager */
+			$cs = Yii::app()->clientScript; /* @var $cs CClientScript */
+
+			$path = $am->publish(Yii::getPathOfAlias('sorter.assets') . "/jquery.simulate.js");
+			$cs->registerScriptFile($path);
+		}
+		
 		// инициализировать выпадающий список
-		Yii::app()->getClientScript()->registerScript(__CLASS__ . '#' . $this->id, $jqueryJs);
+		Yii::app()->getClientScript()->registerScript(__CLASS__ . '#' . $this->id, $resultJs);
+	}
+	
+	protected function renderHeaderCellContent() {
+		parent::renderHeaderCellContent();
 		
 		if($this->packToLink) {
-			// сгенерировать htmlкод и зарегистрировать в js в качестве шаблона
-			// зарегистрировать код, преобразующий линк столбца в htmlкод
-			// - требуется преобразовать шаблон и добавить нужные параметры.
-			// - да при нажатии на линк, надо удалять другие подобные селекты, то есть генерировать надо их не просто так
+			// расположим динамические данные в хедар
+			$dropDownHtml = CHtml::dropDownList($this->dropDownRenderId, null, $this->sortValues, array(
+						'class' => $this->renderClass,
+						'empty' => $this->getRealEmptyText(),
+			));
+			echo CHtml::tag('div', array('style' => 'display: none;', 'id' => $this->topDivRenderId), $dropDownHtml);
 		}
 	}
 
 	protected function renderDataCellContent($row, $data) {
+		if ($this->packToLink) {
+			// тут вывести линк с доп данными которые далее будут резолвиться в селект
+			echo CHtml::link($this->getRealEmptyText(), Yii::app()->controller->createUrl($this->algo, array('id' => $data->getPrimaryKey(), 'd' => $this->direction)), array(
+				'class' => $this->renderClass
+			));
+		} else {
+			echo CHtml::dropDownList("{$this->dropDownRenderId}_{$row}", null, $this->sortValues, array(
+				'class' => $this->renderClass,
+				'empty' => $this->getRealEmptyText(),
+				'data-url' => Yii::app()->controller->createUrl($this->algo, array('id' => $data->getPrimaryKey(), 'd' => $this->direction))
+			));
+		}
+	}
+
+	public function getRealEmptyText() {
+		$result = null;
 
 		if ($this->algo == self::ALGO_MOVE_TO_MODEL) {
-			if ($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
-				$empty = Yii::t('SorterDropDownColumn', '(move before model)');
+			if ($this->direction == 'up') {
+				$result = isset($this->emptyText) ? $this->emptyText : Yii::t('SorterDropDownColumn', '(move before model)');
 			} else {
-				$empty = Yii::t('SorterDropDownColumn', '(move after model)');
+				$result = isset($this->emptyText) ? $this->emptyText : Yii::t('SorterDropDownColumn', '(move after model)');
 			}
 		} else if ($this->algo == self::ALGO_MOVE_TO_POSITION) {
-			if ($this->direction == SorterAbstractMoveAction::DIRECTION_UP) {
-				$empty = Yii::t('SorterDropDownColumn', '(move before position)');
+			if ($this->direction == 'up') {
+				$result = isset($this->emptyText) ? $this->emptyText : Yii::t('SorterDropDownColumn', '(move before position)');
 			} else {
-				$empty = Yii::t('SorterDropDownColumn', '(move after position)');
+				$result = isset($this->emptyText) ? $this->emptyText : Yii::t('SorterDropDownColumn', '(move after position)');
 			}
 		} else {
 			throw new CException(Yii::t('SorterDropDownColumn', 'Unexpected algo == ({algo})', array('{algo}' => $this->algo)));
 		}
 
-		if($this->packToLink) {
-			// тут вывести линк с доп данными которые далее будут резолвиться в селект
-		} else {
-			echo CHtml::dropDownList("dropDown_{$this->id}_$row", null, $this->sortValues, array(
-				'class' => "{$this->cssDropdownClassPart}_{$this->id}",
-				'empty' => $empty,
-				'data-id' => $data->getPrimaryKey()
-			));
-		}
+		return $result;
 	}
 
 }

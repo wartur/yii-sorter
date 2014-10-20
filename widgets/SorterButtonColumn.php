@@ -18,6 +18,10 @@ Yii::import('zii.widgets.grid.CGridColumn');
  */
 class SorterButtonColumn extends CGridColumn {
 
+	const METHOD_MOVE_TO_EDGE = 'sorterMoveToEdge';
+	const METHOD_MOVE_NUMBER = 'sorterMoveNumber';
+	const METHOD_MOVE_ONE = 'sorterMoveOne';
+
 	/**
 	 *
 	 * @var Sorter
@@ -69,34 +73,34 @@ class SorterButtonColumn extends CGridColumn {
 			$this->buttons = array(
 				'begin' => array(
 					'label' => 'B',
-					'moveMethod' => 'sorterMoveToEdge',
+					'moveMethod' => self::METHOD_MOVE_TO_EDGE,
 					'moveDirection' => 'up',
 				),
 				'upNumber' => array(
 					'label' => "Un{$this->numberUp}",
-					'moveMethod' => 'sorterMoveNumber',
+					'moveMethod' => self::METHOD_MOVE_NUMBER,
 					'moveDirection' => 'up',
 					'moveParam' => $this->numberUp,
 				),
 				'up' => array(
 					'label' => 'U',
-					'moveMethod' => 'sorterMoveOne',
+					'moveMethod' => self::METHOD_MOVE_ONE,
 					'moveDirection' => 'up',
 				),
 				'down' => array(
 					'label' => 'D',
-					'moveMethod' => 'sorterMoveOne',
+					'moveMethod' => self::METHOD_MOVE_ONE,
 					'moveDirection' => 'down',
 				),
 				'downNumber' => array(
 					'label' => "Dn{$this->numberDown}",
-					'moveMethod' => 'sorterMoveNumber',
+					'moveMethod' => self::METHOD_MOVE_NUMBER,
 					'moveDirection' => 'down',
 					'moveParam' => $this->numberDown,
 				),
 				'end' => array(
 					'label' => 'E',
-					'moveMethod' => 'sorterMoveToEdge',
+					'moveMethod' => self::METHOD_MOVE_TO_EDGE,
 					'moveDirection' => 'down',
 				),
 			);
@@ -161,7 +165,7 @@ EOD;
 	 */
 	protected function renderDataCellContent($row, $data) {
 		$tr = array();
-		ob_start();
+		
 		foreach ($this->buttons as $id => $button) {
 			$htmlOptions = is_array($button['htmlOptions']) ? $button['htmlOptions'] : array();
 
@@ -174,12 +178,8 @@ EOD;
 				$params['p'] = $button['moveParam'];
 			}
 
-			echo CHtml::link($button['label'], Yii::app()->controller->createUrl($button['moveMethod'], $params), $htmlOptions);
-
-			$tr['{' . $id . '}'] = ob_get_contents();
-			ob_clean();
+			$tr['{' . $id . '}'] = CHtml::link($button['label'], Yii::app()->controller->createUrl($button['moveMethod'], $params), $htmlOptions);
 		}
-		ob_end_clean();
 		echo strtr($this->template, $tr);
 	}
 

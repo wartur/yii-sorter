@@ -98,10 +98,10 @@ abstract class SorterAbstractMoveAction extends CAction {
 	public function getParam($post = false, $convertToInt = true) {
 		$source = $post === false ? $_GET : $_POST;
 
-		if (empty($source[self::PARAM])) {
-			throw new CHttpException(400, Yii::t('sorter', 'Bad param. param is empty use source({source})', array('source' => $post === false ? 'GET' : 'POST')));
-		} else {
+		if (isset($source[self::PARAM])) {
 			return $convertToInt ? (int) $source[self::PARAM] : $source[self::PARAM];
+		} else {
+			throw new CHttpException(400, Yii::t('sorter', 'Bad param. param is empty use source({source})', array('source' => $post === false ? 'GET' : 'POST')));
 		}
 	}
 
