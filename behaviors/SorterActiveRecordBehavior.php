@@ -8,6 +8,7 @@
  * @link https://github.com/wartur/yii-sorter-behavior
  * @license New BSD license
  */
+Yii::import('sorter.behaviors.exceptions.*');
 
 /**
  * Behavior for custom sorting
@@ -945,39 +946,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			if ($this->minLocalFreeSortSpaceBitSize < 1 || $this->minLocalFreeSortSpaceBitSize > $this->freeSortSpaceBitSize) {
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Неверная настройка поля minLocalFreeSortSpaceBitSize({minLocalFreeSortSpaceBitSize}), должно быть больше ноля и меньше или равно freeSortSpaceBitSize({freeSortSpaceBitSize})', array('{minLocalFreeSortSpaceBitSize}' => $this->minLocalFreeSortSpaceBitSize, '{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize)));
 			}
-			
+
 			if (!is_string($this->sorterPrimaryKeyName())) {
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Библиотека не умеет работать составным первичным ключем'));
 			}
 		}
 	}
 
-}
-
-/**
- * Exception throwing if model gived in params nod find
- */
-class SorterKeyNotFindExeption extends CException {
-	
-}
-
-/**
- * Exception throwing if working model not save
- */
-class SorterSaveErrorExeption extends CException {
-	
-}
-
-/**
- * Exception throwing sorter operation can't to be execute
- */
-class SorterOperationExeption extends CException {
-	
-}
-
-/**
- * 
- */
-class SorterOutOfFreeSortSpaceExeption extends CException {
-	
 }

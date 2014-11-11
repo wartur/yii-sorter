@@ -1,0 +1,17 @@
+Для запуска тестов
+==================
+Считается что расширение находится в следующей директории (применяются алиасы и относительные пути)
+ext.wartur.yii-sorter
+
+- Добавьте настройки в config/main.php согласно описанию ext.wartur.yii-sorter/README.md
+(далее считаем что появился алиас sorter)
+
+- Создайте директорию
+/test/unit/extentions/wartur
+
+- Сделайте символическую ссылку
+sorter.tests в application/test/unit/extentions/wartur/yii-sorter
+(написать команду для линуха, написать как это сделать в windows)
+
+- Сделайте импорт директории в конфигурационные файлы
+sorter.test-env.models
