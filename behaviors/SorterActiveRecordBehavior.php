@@ -165,7 +165,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			$naturalSpaceSize = 1 << $bitSpaceSize;
 
 			$localDiff = $elementCount * $naturalSpaceSize;
-			if (!is_int($localDiff)) { // контроль точности, если вышли за предет точности берем максимум PHP
+			if (!is_int($localDiff)) { // контроль точности, если вышли за предел точности берем максимум PHP
 				$localDiff = PHP_INT_MAX;
 			}
 

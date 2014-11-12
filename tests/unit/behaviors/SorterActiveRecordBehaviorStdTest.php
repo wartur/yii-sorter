@@ -112,7 +112,6 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMathMaxSortField
-	 * @todo   Implement testSorterMathMaxSortField().
 	 */
 	public function testSorterMathMaxSortField() {
 		$model = self::createModel();
@@ -122,7 +121,6 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterPrimaryKeyName
-	 * @todo   Implement testSorterPrimaryKeyName().
 	 */
 	public function testSorterPrimaryKeyName() {
 		$model = self::createModel();
@@ -132,46 +130,44 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterRealSpaceNatural
-	 * @todo   Implement testSorterRealSpaceNatural().
 	 */
 	public function testSorterRealSpaceNatural() {
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-				'This test has not been implemented yet.'
-		);
+		$model = self::createModel();
+		
+		$this->assertEquals(32768, $model->sorterRealSpaceNatural());
 	}
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMaxCountOfRecord
-	 * @todo   Implement testSorterMaxCountOfRecord().
 	 */
 	public function testSorterMaxCountOfRecord() {
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-				'This test has not been implemented yet.'
-		);
+		$model = self::createModel();
+		
+		$this->assertEquals(65535, $model->sorterMaxCountOfRecord());
 	}
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterFindNewFreeSortSpaceBitSizeByCount
-	 * @todo   Implement testSorterFindNewFreeSortSpaceBitSizeByCount().
 	 */
 	public function testSorterFindNewFreeSortSpaceBitSizeByCount() {
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-				'This test has not been implemented yet.'
-		);
+		$model = self::createModel();
+		
+		// std
+		$this->assertEquals(32768, $model->sorterFindNewFreeSortSpaceBitSizeByCount(30, 15, 65535));
+		$this->assertNull($model->sorterFindNewFreeSortSpaceBitSizeByCount(30, 15, 65536));
+		
+		// extreem
+		$this->assertEquals(1, $model->sorterFindNewFreeSortSpaceBitSizeByCount(30, 0, 2147483646));
+		$this->assertNull($model->sorterFindNewFreeSortSpaceBitSizeByCount(30, 0, 2147483647));
 	}
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterFindNewFreeSortSpaceBitSizeByDiff
-	 * @todo   Implement testSorterFindNewFreeSortSpaceBitSizeByDiff().
 	 */
 	public function testSorterFindNewFreeSortSpaceBitSizeByDiff() {
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-				'This test has not been implemented yet.'
-		);
+		$model = self::createModel();
+		
+		
 	}
 
 	/**
