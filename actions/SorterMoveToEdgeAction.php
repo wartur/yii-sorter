@@ -26,9 +26,9 @@ class SorterMoveToEdgeAction extends SorterAbstractMoveAction {
 
 		/* @var $model SorterActiveRecordBehavior */
 		if ($this->getIsDirectionUp()) {
-			$model->sorterCurrentMoveToBegin();
+			$model->sorterMoveToBegin();
 		} else {
-			$model->sorterCurrentMoveToEnd();
+			$model->sorterMoveToEnd();
 		}
 	}
 

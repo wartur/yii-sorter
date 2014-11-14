@@ -26,9 +26,9 @@ class SorterMoveNumberAction extends SorterAbstractMoveAction {
 
 		/* @var $model SorterActiveRecordBehavior */
 		if ($this->getIsDirectionUp()) {
-			$model->sorterCurrentMoveUpNumber($this->getParam());
+			$model->sorterMoveUpNumber($this->getParam());
 		} else {
-			$model->sorterCurrentMoveDownNumber($this->getParam());
+			$model->sorterMoveDownNumber($this->getParam());
 		}
 	}
 

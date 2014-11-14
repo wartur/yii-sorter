@@ -25,9 +25,9 @@ class SorterMoveToModelAction extends SorterAbstractMoveAction {
 	public function transactionRun(CActiveRecord $model) {
 		/* @var $model SorterActiveRecordBehavior */
 		if ($this->getIsDirectionUp()) {
-			$model->sorterCurrentMoveBefore($this->getParam(true));
+			$model->sorterMoveBefore($this->getParam(true));
 		} else {
-			$model->sorterCurrentMoveAfter($this->getParam(true));
+			$model->sorterMoveAfter($this->getParam(true));
 		}
 	}
 

@@ -26,9 +26,9 @@ class SorterMoveOneAction extends SorterAbstractMoveAction {
 
 		/* @var $model SorterActiveRecordBehavior */
 		if ($this->getIsDirectionUp()) {
-			$model->sorterCurrentMoveUp();
+			$model->sorterMoveUp();
 		} else {
-			$model->sorterCurrentMoveDown();
+			$model->sorterMoveDown();
 		}
 	}
 
