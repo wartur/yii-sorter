@@ -145,6 +145,30 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 	}
 
 	/**
+	 * Test moveUp if is new record
+	 * @covers SorterActiveRecordBehavior::sorterSwappWith
+	 * @expectedException SorterSaveErrorExeption
+	 */
+	public function testSorterSwappWithExceptionSaveFirst() {
+		$model = $this->loadModel(1);
+		$modelSwap = $this->loadModel(2);
+		$model->owner->name = null;  // valudate error
+		$model->sorterSwappWith($modelSwap);
+	}
+
+	/**
+	 * Test moveUp if is new record
+	 * @covers SorterActiveRecordBehavior::sorterSwappWith
+	 * @expectedException SorterSaveErrorExeption
+	 */
+	public function testSorterSwappWithExceptionSaveSecond() {
+		$model = $this->loadModel(1);
+		$modelSwap = $this->loadModel(2);
+		$modelSwap->owner->name = null; // valudate error in swapped model
+		$model->sorterSwappWith($modelSwap);
+	}
+
+	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveUp
 	 */
 	public function testSorterMoveUp() {
@@ -160,6 +184,17 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 	}
 
 	/**
+	 * Test moveUp if is new record
+	 * @covers SorterActiveRecordBehavior::sorterMoveUp
+	 * @expectedException SorterOperationExeption
+	 * @expectedExceptionMessage sorterCurrentMoveUp not support when it is new record
+	 */
+	public function testSorterMoveUpException() {
+		$model = $this->createModel();
+		$model->sorterMoveUp();
+	}
+
+	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveDown
 	 */
 	public function testSorterMoveDown() {
@@ -172,6 +207,17 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 		$this->assertEquals(1075773440, $modelSwapTest->owner->sort);
 		$modelSwapTest->sorterMoveDown();
 		$this->assertEquals(1075806208, $modelSwapTest->owner->sort);
+	}
+
+	/**
+	 * Test moveDown if is new record
+	 * @covers SorterActiveRecordBehavior::sorterMoveDown
+	 * @expectedException SorterOperationExeption
+	 * @expectedExceptionMessage sorterCurrentMoveDown not support when it is new record
+	 */
+	public function testSorterMoveDownException() {
+		$model = $this->createModel();
+		$model->sorterMoveDown();
 	}
 
 	/**
@@ -195,17 +241,17 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 		$modelGoToEndOfSpace = $this->loadModel(65);
 		$this->assertEquals(1073774592, $modelGoToEndOfSpace->owner->sort);
 		$modelGoToEndOfSpace->sorterMoveToBegin();
-		$this->assertEquals(16, $modelGoToEndOfSpace->owner->sort);
+		$this->assertEquals(16, $modelGoToEndOfSpace->owner->sort);	// by 16
 
 		$modelGoToEndOfSpace2 = $this->loadModel(66);
 		$this->assertEquals(1073807360, $modelGoToEndOfSpace2->owner->sort);
 		$modelGoToEndOfSpace2->sorterMoveToBegin();
-		$this->assertEquals(8, $modelGoToEndOfSpace2->owner->sort);
+		$this->assertEquals(8, $modelGoToEndOfSpace2->owner->sort);	// by 8
 
 		// it's end of space test and noirmalisation
 		$insertToEnd = $this->createModel();
 		$insertToEnd->owner->sort = 1;
-		$insertToEnd->owner->name = 'end of space';
+		$insertToEnd->owner->name = 'out of space';
 		$this->assertTrue($insertToEnd->save());
 
 		$modelGoToOutOfSpace = $this->loadModel(67);
@@ -250,20 +296,109 @@ class SorterActiveRecordBehaviorStdTest extends CDbTestCase {
 		$modelOnlySet2After = $this->loadModel($modelOnlySet2->id);
 		$this->assertEquals(1073741824, $modelOnlySet2After->owner->sort);
 
-		// it's test for move to begin optimisation if this record is fitst
+		// it's test for moveToBegin optimisation if this record is fitst
 		$modelOnlySet->sorterMoveToBegin();
 		$this->assertEquals(1073709056, $modelOnlySet->owner->sort);
 	}
 
 	/**
+	 * Test insertFirst exception (private method)
+	 * @covers SorterActiveRecordBehavior::insertFirst
+	 * @expectedException SorterSaveErrorExeption
+	 */
+	public function testSorterInsertFirstException() {
+		SortestStd::model()->deleteAll();
+
+		// it's insert first tests
+		$model = $this->createModel();
+		$model->owner->name = null;
+		$model->sorterMoveToBegin();
+	}
+
+	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToEnd
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
+	 * @covers SorterActiveRecordBehavior::sorterSwappWith
+	 * @covers SorterActiveRecordBehavior::insertFirst
 	 * @todo   Implement testSorterMoveToEnd().
 	 */
 	public function testSorterMoveToEnd() {
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-				'This test has not been implemented yet.'
-		);
+		$model = $this->loadModel(64);
+		$this->assertEquals(1073741824, $model->owner->sort);
+		$model->sorterMoveToEnd();
+		$this->assertEquals(1075838976, $model->owner->sort); // by 32768
+		//
+		// it's end of free space. devide on 2
+		$insert = $this->createModel();
+		$insert->owner->sort = 2147483615;
+		$insert->owner->name = 'end of space';
+		$this->assertTrue($insert->save());
+
+		$modelGoToEndOfSpace = $this->loadModel(65);
+		$this->assertEquals(1073774592, $modelGoToEndOfSpace->owner->sort);
+		$modelGoToEndOfSpace->sorterMoveToEnd();
+		$this->assertEquals(2147483631, $modelGoToEndOfSpace->owner->sort);	// by 16
+
+		$modelGoToEndOfSpace2 = $this->loadModel(66);
+		$this->assertEquals(1073807360, $modelGoToEndOfSpace2->owner->sort);
+		$modelGoToEndOfSpace2->sorterMoveToEnd();
+		$this->assertEquals(2147483639, $modelGoToEndOfSpace2->owner->sort); // by 8
+
+		// it's end of space test and noirmalisation
+		$insertToEnd = $this->createModel();
+		$insertToEnd->owner->sort = 2147483646;
+		$insertToEnd->owner->name = 'out of space';
+		$this->assertTrue($insertToEnd->save());
+
+		/*
+		$modelGoToOutOfSpace = $this->loadModel(67);
+		$this->assertEquals(1073840128, $modelGoToOutOfSpace->owner->sort); // src
+		$modelGoToOutOfSpace->sorterMoveToEnd();
+		$this->assertEquals(1071480832, $modelGoToOutOfSpace->owner->sort); // after insert
+		//
+		// normalisation test
+		$modelInsertToEnd = $this->loadModel($insertToEnd->id);
+		$this->assertEquals(1071513600, $modelInsertToEnd->owner->sort); // +32768
+		$model66 = $this->loadModel(66);
+		$this->assertEquals(1071546368, $model66->owner->sort); // +32768
+		$model65 = $this->loadModel(65);
+		$this->assertEquals(1071579136, $model65->owner->sort); // +32768
+		$modelInsert = $this->loadModel($insert->id);
+		$this->assertEquals(1071611904, $modelInsert->owner->sort);  // +32768
+		$model64 = $this->loadModel(64);
+		$this->assertEquals(1071644672, $model64->owner->sort); // +32768
+		$model1 = $this->loadModel(1);
+		$this->assertEquals(1071677440, $model1->owner->sort); // +32768 and ......
+		//
+		// delete all
+		SortestStd::model()->deleteAll();
+
+		// it's insert first tests
+		$modelOnlySet = $this->createModel();
+		$modelOnlySet->owner->name = 'onlyset1';
+		$modelOnlySet->sorterMoveToEnd();
+		$this->assertTrue($modelOnlySet->save());
+		$this->assertEquals(1073741824, $modelOnlySet->owner->sort);
+
+		// it's only set tests
+		$modelOnlySet2 = $this->createModel();
+		$modelOnlySet2->name = 'onlyset2';
+		$modelOnlySet2->sorterMoveToEnd(true);
+		$this->assertEquals(1073709056, $modelOnlySet2->owner->sort); // HEADS UP!!! it's before save
+		$this->assertTrue($modelOnlySet2->save());
+
+		// it's test for swap optimisation in moveToBegin method
+		$modelOnlySet->sorterMoveToEnd();
+		$this->assertEquals(1073709056, $modelOnlySet->owner->sort);
+		$modelOnlySet2After = $this->loadModel($modelOnlySet2->id);
+		$this->assertEquals(1073741824, $modelOnlySet2After->owner->sort);
+
+		// it's test for moveToBegin optimisation if this record is fitst
+		$modelOnlySet->sorterMoveToEnd();
+		$this->assertEquals(1073709056, $modelOnlySet->owner->sort);
+		 */
+		
+		// end mod2 round test
 	}
 
 	/**
