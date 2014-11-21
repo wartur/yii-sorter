@@ -8,15 +8,15 @@
  * @property string $name
  * @property string $sort
  */
-class SortestTinySortSpace extends CActiveRecord {
+class SortestFullFill extends CActiveRecord {
 
 	public function behaviors() {
 		return array_merge(parent::behaviors(), array(
 			'SorterActiveRecordBehavior' => array(
 				'class' => 'sorter.behaviors.SorterActiveRecordBehavior',
-				'sortFieldBitSize' => 30,
-				'freeSortSpaceBitSize' => 4,
-				'minLocalFreeSortSpaceBitSize' => 1,
+				'sortFieldBitSize' => 5,
+				'freeSortSpaceBitSize' => 3,
+				'minLocalFreeSortSpaceBitSize' => 2,
 			)
 		));
 	}

@@ -8,14 +8,14 @@
  * @property string $name
  * @property string $sort
  */
-class SortestHugeSortSpace extends CActiveRecord {
+class SortestOntheflyCenterStd extends CActiveRecord {
 
 	public function behaviors() {
 		return array_merge(parent::behaviors(), array(
 			'SorterActiveRecordBehavior' => array(
 				'class' => 'sorter.behaviors.SorterActiveRecordBehavior',
 				'sortFieldBitSize' => 30,
-				'freeSortSpaceBitSize' => 25,
+				'freeSortSpaceBitSize' => 15,
 				'minLocalFreeSortSpaceBitSize' => 4,
 			)
 		));

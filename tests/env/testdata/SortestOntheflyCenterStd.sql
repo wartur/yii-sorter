@@ -109,6 +109,21 @@ INSERT INTO `sortest` (`id`, `name`, `sort`) VALUES
 (62, '62', 1073676288),
 (63, '63', 1073709056),
 (64, '64', 1073741824),
+(128, '128', 1073741825),  /* many conflicts but. Double search is not run */
+(129, '129', 1073741826),  /* many conflicts */
+(130, '130', 1073741827),  /* many conflicts */
+(131, '131', 1073741828),  /* many conflicts */
+(132, '132', 1073741829),  /* many conflicts */
+(133, '133', 1073741830),  /* many conflicts */
+(134, '134', 1073741831),  /* many conflicts */
+(135, '135', 1073741832),  /* many conflicts */
+(136, '136', 1073741833),  /* many conflicts */
+(137, '137', 1073741834),  /* many conflicts */
+(138, '138', 1073741835),  /* many conflicts */
+(139, '139', 1073741836),  /* many conflicts */
+(140, '140', 1073741837),  /* many conflicts */
+(141, '141', 1073741838),  /* many conflicts */
+(142, '142', 1073741839),  /* many conflicts */
 (65, '65', 1073774592),
 (66, '66', 1073807360),
 (67, '67', 1073840128),

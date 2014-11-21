@@ -356,11 +356,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		if ($pk instanceof CActiveRecord) {
 			$movePlaceBeforeModel = $pk;
 
-			if ($this->owner->getPrimaryKey() == $movePlaceBeforeModel->getPrimaryKey()) { // not need replace after own.
+			if ($this->owner->getPrimaryKey() == $movePlaceBeforeModel->getPrimaryKey()) { // not need replace before own.
 				return null;
 			}
 		} else {
-			if ($this->owner->getPrimaryKey() == $pk) { // not need replace after own.
+			if ($this->owner->getPrimaryKey() == $pk) { // not need replace before own.
 				return null;
 			}
 
@@ -406,10 +406,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 	/**
 	 * 
-	 * @param integer $position
+	 * @param type $position
+	 * @param type $onlySet
 	 */
 	public function sorterMoveToPositionBefore($position, $onlySet = false) {
-		if ($position < 2) {
+		if ($position <= 1) {
 			$this->sorterMoveToBegin();
 		} else {
 			$model = $this->owner->model()->find(array(
@@ -422,17 +423,18 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			} else {
 				// находим позицию.
 				// делаем moveBefore
-				$this->sorterMoveBefore($model->getPrimaryKey(), $onlySet);
+				$this->sorterMoveBefore($model, $onlySet);
 			}
 		}
 	}
 
 	/**
 	 * 
-	 * @param integer $position
+	 * @param type $position
+	 * @param type $onlySet
 	 */
 	public function sorterMoveToPositionAfter($position, $onlySet = false) {
-		if ($position < 1) {
+		if ($position <= 0) {
 			$this->sorterMoveToBegin();
 		} else {
 			$model = $this->owner->model()->find(array(
@@ -446,7 +448,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			} else {
 				// находим позицию.
 				// делаем moveBefore
-				$this->sorterMoveAfter($model->getPrimaryKey(), $onlySet);
+				$this->sorterMoveAfter($model, $onlySet);
 			}
 		}
 	}
@@ -483,16 +485,16 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public function sorterNormalizeSortFieldRegular() {
 		$elementCount = $this->owner->model()->count();
 		if ($elementCount > 0) {
-			$newFreeSortSpaceBitSizeNatural = $this->sorterFindNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, $this->freeSortSpaceBitSize, $elementCount);
+			$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, $this->freeSortSpaceBitSize, $elementCount);
 
 			if ($newFreeSortSpaceBitSizeNatural === null) {
 				$this->normalizeSortFieldExtreme($elementCount);
 			} else {
 
-				$maxSortField = $this->sorterMathMaxSortField();
+				$maxSortField = $this->mathMaxSortField();
 
 				// это центрально-взвешенный элемент
-				$startSortValue = $this->sorterCentralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, 0, $maxSortField);
+				$startSortValue = $this->centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, 0, $maxSortField);
 
 				$this->distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, 0, $maxSortField);
 			}
@@ -568,7 +570,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 						->queryScalar(array('downSortFieldValue' => $downSortFieldValue));
 				if (empty($afterSortFieldValue)) {
 					$usingMax = true;
-					$afterSortFieldValue = $this->sorterMathMaxSortField();
+					$afterSortFieldValue = $this->mathMaxSortField();
 				}
 			}
 
@@ -607,9 +609,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 			// произвести поиск локальной мощьности разряженности
 			if ($usingMin && $usingMax) {
-				$newFreeSortSpaceBitSizeNatural = $this->sorterFindNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount);
+				$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount);
 			} else {
-				$newFreeSortSpaceBitSizeNatural = $this->sorterFindNewFreeSortSpaceBitSizeByDiff($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue);
+				$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByDiff($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue);
 			}
 
 			// если пространства не найдено, удваиваем ширину просмотра
@@ -640,7 +642,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				$startSortValue = $beforeSortFieldValue + $newFreeSortSpaceBitSizeNatural;
 			} else {
 				// это центрально-взвешенный элемент
-				$startSortValue = $this->sorterCentralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue);
+				$startSortValue = $this->centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue);
 			}
 
 			// ======= распределяем пространство =======  (по сути это универсальный алгоритм, надо вынести в отдельный метод)
@@ -649,7 +651,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	private function distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, $beforeSortFieldValue, $afterSortFieldValue, $upSortFieldValue = null) {
-		$afterSortFieldValueExtend = $afterSortFieldValue == $this->sorterMathMaxSortField() ? PHP_INT_MAX : $afterSortFieldValue;
+		$afterSortFieldValueExtend = $afterSortFieldValue == $this->mathMaxSortField() ? PHP_INT_MAX : $afterSortFieldValue;
 
 		$this->owner->model()->updateAll(array("$this->sortField" => new CDbExpression("-{$this->sortField}")), array(
 			'condition' => ":beforeSortFieldValue < {$this->sortField} AND {$this->sortField} < :afterSortFieldValue",
@@ -708,8 +710,6 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			} else {
 				foreach ($models as $entry) {
 
-					$newFromSearch = $entry->{$this->sortField};
-
 					$entry->{$this->sortField} = $currentSortNatural;
 					if (!$entry->save()) {
 						throw new SorterSaveErrorExeption(Yii::t('SorterActiveRecordBehavior', 'Error data: $entry =>' . CVarDumper::dumpAsString($entry->getErrors())));
@@ -720,8 +720,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			}
 
 			// next package
-			$condition->params['newFromSearch'] = $newFromSearch; // is more faster then $condition->offset += $this->pacakgeSize
-		} while (count($models) == $this->packageSize || $newFromSearch === null);
+		} while (count($models) == $this->packageSize);
 
 		return $result;
 	}
@@ -734,16 +733,16 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		// find local free sort space bit size in global scope
 		// for extreme sutuation min local free sort space less then minLocalFreeSortSpaceBitSize
-		$newFreeSortSpaceBitSizeNatural = $this->sorterFindNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, 0, $elementCount);
+		$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, 0, $elementCount);
 
 		if ($newFreeSortSpaceBitSizeNatural === null) { // fulled degradation
 			throw new SorterOutOfFreeSortSpaceExeption(Yii::t('SorterActiveRecordBehavior', 'Out of free sort space. Need reconfigure system in table({table})', array('{table}' => $this->owner->tableName())));
 		}
 
-		$maxSortField = $this->sorterMathMaxSortField();
+		$maxSortField = $this->mathMaxSortField();
 
 		// это центрально-взвешенный элемент
-		$startSortValue = $this->sorterCentralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, 0, $maxSortField);
+		$startSortValue = $this->centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, 0, $maxSortField);
 
 		return $this->distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, 0, $maxSortField, $afterInsertSortId);
 	}
@@ -771,7 +770,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 	private function moveToEndFast($max, $onlySet = false) {
 		$freeSortSpaceBitSizeNatural = 1 << $this->freeSortSpaceBitSize;
-		$maxSortValue = $this->sorterMathMaxSortField();
+		$maxSortValue = $this->mathMaxSortField();
 
 		if ($maxSortValue - $max <= $freeSortSpaceBitSizeNatural) {
 			// End place for insert to end. It's Extreme warning situation
@@ -830,29 +829,20 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * 
 	 * @return type
 	 */
-	private function sorterMathMaxSortField() {
+	private function mathMaxSortField() {
 		$sortFieldBitSizeNatural = 1 << $this->sortFieldBitSize;
 		return $sortFieldBitSizeNatural - 1 + $sortFieldBitSizeNatural;
 	}
 
-	private function sorterPrimaryKeyName() {
+	private function primaryKeyName() {
 		return $this->owner->getMetaData()->tableSchema->primaryKey;
 	}
 
-	private function sorterRealSpaceNatural() {
-		return 1 << ($this->sortFieldBitSize - $this->freeSortSpaceBitSize);
-	}
-
-	private function sorterMaxCountOfRecord() {
-		$realSpaceNatural = $this->sorterRealSpaceNatural();
-		return $realSpaceNatural - 1 + $realSpaceNatural;
-	}
-
-	private function sorterFindNewFreeSortSpaceBitSizeByCount($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount) {
+	private function findNewFreeSortSpaceBitSizeByCount($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount) {
 		// поиск черел алгоритм битовой разницы предел
 		$findBitSpaceSize = null;
 
-		if ($elementCount < $this->sorterMathMaxSortField()) {
+		if ($elementCount < $this->mathMaxSortField()) {
 			for ($bitSpaceSize = $currentFreeSortSpaceBitSize; $bitSpaceSize >= $minFreeSortSpaceBitSize; --$bitSpaceSize) { // от большего шага к меньшему
 				$realSpaceNatural = 1 << ($this->sortFieldBitSize - $bitSpaceSize);
 				$maxNamberOfRecord = $realSpaceNatural - 1 + $realSpaceNatural;
@@ -867,7 +857,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		return isset($findBitSpaceSize) ? 1 << $findBitSpaceSize : null;
 	}
 
-	private function sorterFindNewFreeSortSpaceBitSizeByDiff($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue) {
+	private function findNewFreeSortSpaceBitSizeByDiff($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue) {
 		$currentDiff = $afterSortFieldValue - $beforeSortFieldValue;
 
 		// поиск черел алгоритм сравнений натуральных расстояний
@@ -891,8 +881,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		return $newFreeSortSpaceBitSizeNatural;
 	}
 
-	private function sorterCentralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue) {
-		if ($beforeSortFieldValue == 0 && $afterSortFieldValue == $this->sorterMathMaxSortField()) {
+	private function centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue) {
+		if ($beforeSortFieldValue == 0 && $afterSortFieldValue == $this->mathMaxSortField()) {
 			// центрально взвешенный при реглуярной/экстремальной нормализации
 			$halfCount = $elementCount >> 1;
 			$firstElementOffset = $newFreeSortSpaceBitSizeNatural * $halfCount;
@@ -948,7 +938,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Неверная настройка поля minLocalFreeSortSpaceBitSize({minLocalFreeSortSpaceBitSize}), должно быть больше ноля и меньше или равно freeSortSpaceBitSize({freeSortSpaceBitSize})', array('{minLocalFreeSortSpaceBitSize}' => $this->minLocalFreeSortSpaceBitSize, '{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize)));
 			}
 
-			if (!is_string($this->sorterPrimaryKeyName())) {
+			if (!is_string($this->primaryKeyName())) {
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Библиотека не умеет работать составным первичным ключем'));
 			}
 		}

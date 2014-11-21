@@ -5,4 +5,4 @@ CREATE TABLE IF NOT EXISTS `sortest` (
   `sort` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `sort` (`sort`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+) ENGINE=MEMORY  DEFAULT CHARSET=utf8;
