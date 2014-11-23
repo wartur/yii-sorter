@@ -34,8 +34,8 @@ class SorterActiveRecordBehaviorFuncExtreemTest extends CDbTestCase {
 		parent::setUpBeforeClass();
 
 		// loading the database schema
-		$testdataPath = Yii::getPathOfAlias('sorter.tests.env.testdata');
-		$createTableSql = file_get_contents($testdataPath . '/' . self::$className . '.sql');
+		$schemaPath = Yii::getPathOfAlias('sorter.tests.env.schema');
+		$createTableSql = file_get_contents($schemaPath . '/sortest.sql');
 		Yii::app()->db->createCommand($createTableSql)->execute();
 
 		// import models
@@ -47,10 +47,7 @@ class SorterActiveRecordBehaviorFuncExtreemTest extends CDbTestCase {
 	 * This method is called before a test is executed.
 	 */
 	protected function setUp() {
-		// load fixture
-		$testdataPath = Yii::getPathOfAlias('sorter.tests.env.testdata');
-		$createTableSql = file_get_contents($testdataPath . '/' . self::$className . '.sql');
-		Yii::app()->db->createCommand($createTableSql)->execute();
+		
 	}
 
 	/**
@@ -118,7 +115,12 @@ class SorterActiveRecordBehaviorFuncExtreemTest extends CDbTestCase {
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
 	 */
-	public function testExtreemNormalisation() {
+	public function testStdOnthefly() {
+		// load fixture
+		$testdataPath = Yii::getPathOfAlias('sorter.tests.env.testdata');
+		$createTableSql = file_get_contents($testdataPath . '/SortestSmallOnthefly.sql');
+		Yii::app()->db->createCommand($createTableSql)->execute();
+		
 		// select all order by sort in array 
 		$expected = Yii::app()->db->createCommand('SELECT id FROM sortest WHERE 1 ORDER BY sort ASC')->queryColumn();
 		
@@ -136,5 +138,53 @@ class SorterActiveRecordBehaviorFuncExtreemTest extends CDbTestCase {
 		$this->assertNotEquals(300, $this->loadModel(88)->owner->sort);
 		$this->assertNotEquals(509, $this->loadModel(159)->owner->sort);
 		$this->assertNotEquals(510, $this->loadModel(160)->owner->sort);
+	}
+	
+	/**
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
+	 */
+	public function testStdOntheflyExtreem() {
+		// load fixture
+		$testdataPath = Yii::getPathOfAlias('sorter.tests.env.testdata');
+		$createTableSql = file_get_contents($testdataPath . '/SortestSmallOntheflyExtreem.sql');
+		Yii::app()->db->createCommand($createTableSql)->execute();
+		
+		// select all order by sort in array 
+		$expected = Yii::app()->db->createCommand('SELECT id FROM sortest WHERE 1 ORDER BY sort ASC')->queryColumn();
+		
+		// add new element in db
+		$model = $this->createModel();
+		$model->name = 'insert';
+		$model->sorterMoveToEnd(true);
+		$this->assertTrue($model->save());
+		
+		$this->assertEquals(array_merge($expected, array($model->id)), Yii::app()->db->createCommand('SELECT id FROM sortest WHERE 1 ORDER BY sort ASC')->queryColumn());
+		
+		// all record not equal
+		$this->assertNotEquals(2, $this->loadModel(1)->owner->sort);
+		$this->assertNotEquals(4, $this->loadModel(2)->owner->sort);
+		$this->assertNotEquals(280, $this->loadModel(140)->owner->sort);
+		$this->assertNotEquals(509, $this->loadModel(255)->owner->sort);
+		$this->assertNotEquals(510, $this->loadModel(256)->owner->sort);
+	}
+	
+	/**
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
+	 */
+	public function testStdRegularExtreem() {
+		// load fixture
+		$testdataPath = Yii::getPathOfAlias('sorter.tests.env.testdata');
+		$createTableSql = file_get_contents($testdataPath . '/SortestSmallRegularExtreem.sql');
+		Yii::app()->db->createCommand($createTableSql)->execute();
+		
+		// select all order by sort in array 
+		$expected = Yii::app()->db->createCommand('SELECT id FROM sortest WHERE 1 ORDER BY sort ASC')->queryColumn();
+		
+		// add new element in db
+		$this->createModel()->sorterNormalizeSortFieldRegular();
+		
+		$this->assertEquals($expected, Yii::app()->db->createCommand('SELECT id FROM sortest WHERE 1 ORDER BY sort ASC')->queryColumn());
 	}
 }

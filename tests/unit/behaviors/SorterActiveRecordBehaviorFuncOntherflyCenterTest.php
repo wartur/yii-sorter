@@ -125,7 +125,7 @@ class SorterActiveRecordBehaviorFuncOntherflyCenterTest extends CDbTestCase {
 
 		$model = $this->createModel();
 		$model->name = 'insert';
-		$model->sorterMoveAfter(64, true);
+		$model->sorterMoveToModelAfter(64, true);
 		$this->assertTrue($model->save());
 
 		// compare order

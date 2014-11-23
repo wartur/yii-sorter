@@ -172,6 +172,7 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveUp
+	 * @covers SorterActiveRecordBehavior::sorterMove
 	 */
 	public function testSorterMoveUp() {
 		$model = $this->loadModel(1);
@@ -188,8 +189,9 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 	/**
 	 * Test moveUp if is new record
 	 * @covers SorterActiveRecordBehavior::sorterMoveUp
+	 * @covers SorterActiveRecordBehavior::sorterMove
 	 * @expectedException SorterOperationExeption
-	 * @expectedExceptionMessage sorterCurrentMoveUp not support when it is new record
+	 * @expectedExceptionMessage sorterMoveUp sorterMoveDown not support when it is new record
 	 */
 	public function testSorterMoveUpException() {
 		$model = $this->createModel();
@@ -198,6 +200,7 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveDown
+	 * @covers SorterActiveRecordBehavior::sorterMove
 	 */
 	public function testSorterMoveDown() {
 		$model = $this->loadModel(127);
@@ -214,8 +217,9 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 	/**
 	 * Test moveDown if is new record
 	 * @covers SorterActiveRecordBehavior::sorterMoveDown
+	 * @covers SorterActiveRecordBehavior::sorterMove
 	 * @expectedException SorterOperationExeption
-	 * @expectedExceptionMessage sorterCurrentMoveDown not support when it is new record
+	 * @expectedExceptionMessage sorterMoveUp sorterMoveDown not support when it is new record
 	 */
 	public function testSorterMoveDownException() {
 		$model = $this->createModel();
@@ -224,6 +228,7 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToBegin
+	 * @covers SorterActiveRecordBehavior::sorterMoveTo
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
 	 * @covers SorterActiveRecordBehavior::sorterSwappWith
 	 * @covers SorterActiveRecordBehavior::insertFirst
@@ -322,6 +327,7 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToEnd
+	 * @covers SorterActiveRecordBehavior::sorterMoveTo
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
 	 * @covers SorterActiveRecordBehavior::sorterSwappWith
 	 * @covers SorterActiveRecordBehavior::insertFirst
@@ -416,29 +422,31 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 	
 	/**
 	 * Test isNewRecord exception
-	 * @covers SorterActiveRecordBehavior::sorterMoveUpNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberUp
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumber
 	 * @expectedException SorterOperationExeption
-	 * @expectedExceptionMessage sorterCurrentMoveUpNumber not support when it is new record
+	 * @expectedExceptionMessage sorterMoveUpNumber sorterMoveDownNumber not support when it is new record
 	 */
-	public function testSorterMoveUpNumberIsNewRecordException() {
+	public function testSorterMoveNumberUpIsNewRecordException() {
 		$model = $this->createModel();
-		$model->sorterMoveUpNumber(5);
+		$model->sorterMoveNumberUp(5);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveUpNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberUp
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumber
 	 */
-	public function testSorterMoveUpNumber() {
+	public function testSorterMoveNumberUp() {
 		// std
 		$model64 = $this->loadModel(64);
 		$this->assertEquals(1073741824, $model64->owner->sort);
-		$model64->sorterMoveUpNumber(5);
+		$model64->sorterMoveNumberUp(5);
 		$this->assertEquals(1073561600, $model64->owner->sort);
 		
 		// test move 1 (swap)
 		$model90 = $this->loadModel(90);
 		$this->assertEquals(1074593792, $model90->owner->sort);
-		$model90->sorterMoveUpNumber(1);
+		$model90->sorterMoveNumberUp(1);
 		$this->assertEquals(1074561024, $model90->owner->sort);
 		$model89 = $this->loadModel(89);
 		$this->assertEquals(1074593792, $model89->owner->sort);
@@ -446,53 +454,54 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		// test move 0
 		$model100 = $this->loadModel(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
-		$model100->sorterMoveUpNumber(0);
+		$model100->sorterMoveNumberUp(0);
 		$this->assertEquals(1074921472, $model100->owner->sort);
 		
 		// test move -2 (negative)
 		$model3 = $this->loadModel(3);
 		$this->assertEquals(1071742976, $model3->owner->sort);
-		$model3->sorterMoveUpNumber(-2);
+		$model3->sorterMoveNumberUp(-2);
 		$this->assertEquals(1071824896, $model3->owner->sort);
 		
 		// moveToBegin
 		$model110 = $this->loadModel(110);
 		$this->assertEquals(1075249152, $model110->owner->sort);
-		$model110->sorterMoveUpNumber(1000);
+		$model110->sorterMoveNumberUp(1000);
 		$this->assertEquals(1071644672, $model110->owner->sort);
 		
 		// fast moveToBegin
 		$model10 = $this->loadModel(10);
 		$this->assertEquals(1071972352, $model10->owner->sort);
-		$model10->sorterMoveUpNumber(10);
+		$model10->sorterMoveNumberUp(10);
 		$this->assertEquals(1071611904, $model10->owner->sort);
 	}
 	
 	/**
 	 * Test isNewRecord exception
-	 * @covers SorterActiveRecordBehavior::sorterMoveDownNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberDown
 	 * @expectedException SorterOperationExeption
-	 * @expectedExceptionMessage sorterCurrentMoveDownNumber not support when it is new record
+	 * @expectedExceptionMessage sorterMoveUpNumber sorterMoveDownNumber not support when it is new record
 	 */
-	public function testSorterMoveDownNumberIsNewRecordException() {
+	public function testSorterMoveNumberDownIsNewRecordException() {
 		$model = $this->createModel();
-		$model->sorterMoveDownNumber(5);
+		$model->sorterMoveNumberDown(5);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveDownNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberDown
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumber
 	 */
-	public function testSorterMoveDownNumber() {
+	public function testSorterMoveNumberDown() {
 		// std
 		$model64 = $this->loadModel(64);
 		$this->assertEquals(1073741824, $model64->owner->sort);
-		$model64->sorterMoveDownNumber(5);
+		$model64->sorterMoveNumberDown(5);
 		$this->assertEquals(1073922048, $model64->owner->sort);
 		
 		// test move 1 (swap)
 		$model90 = $this->loadModel(90);
 		$this->assertEquals(1074593792, $model90->owner->sort);
-		$model90->sorterMoveDownNumber(1);
+		$model90->sorterMoveNumberDown(1);
 		$this->assertEquals(1074626560, $model90->owner->sort);
 		$model89 = $this->loadModel(91);
 		$this->assertEquals(1074593792, $model89->owner->sort);
@@ -500,117 +509,122 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		// test move 0
 		$model100 = $this->loadModel(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
-		$model100->sorterMoveDownNumber(0);
+		$model100->sorterMoveNumberDown(0);
 		$this->assertEquals(1074921472, $model100->owner->sort);
 		
 		// test move -2 (negative)
 		$model10 = $this->loadModel(10);
 		$this->assertEquals(1071972352, $model10->owner->sort);
-		$model10->sorterMoveDownNumber(-2);
+		$model10->sorterMoveNumberDown(-2);
 		$this->assertEquals(1071890432, $model10->owner->sort);
 		
 		// moveToEnd
 		$model110 = $this->loadModel(110);
 		$this->assertEquals(1075249152, $model110->owner->sort);
-		$model110->sorterMoveDownNumber(1000);
+		$model110->sorterMoveNumberDown(1000);
 		$this->assertEquals(1075838976, $model110->owner->sort);
 		
 		// fast moveToEnd
 		$model121 = $this->loadModel(121);
 		$this->assertEquals(1075609600, $model121->owner->sort);
-		$model121->sorterMoveDownNumber(7);
+		$model121->sorterMoveNumberDown(7);
 		$this->assertEquals(1075871744, $model121->owner->sort);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @covers SorterActiveRecordBehavior::moveToEndFast
 	 * @covers SorterActiveRecordBehavior::moveBetween
 	 */
-	public function testSorterMoveAfter() {
+	public function testSorterMoveToModelAfter() {
 		$model64 = $this->loadModel(64);
 		$this->assertEquals(1073741824, $model64->owner->sort);
 		// swap
-		$model64->sorterMoveAfter(65);
+		$model64->sorterMoveToModelAfter(65);
 		$this->assertEquals(1073774592, $model64->owner->sort);
 		$model65 = $this->loadModel(65);
 		$this->assertEquals(1073741824, $model65->owner->sort);
 		// std move
-		$model64->sorterMoveAfter(70);
+		$model64->sorterMoveToModelAfter(70);
 		$this->assertEquals(1073954816, $model64->owner->sort);
 		// std move to end
-		$model64->sorterMoveAfter(127);
+		$model64->sorterMoveToModelAfter(127);
 		$this->assertEquals(1075838976, $model64->owner->sort);
 		// after own
 		$model100 = $this->loadModel(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
-		$model100->sorterMoveAfter(100);
+		$model100->sorterMoveToModelAfter(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
 		// swap from up
 		$model10 = $this->loadModel(10);
 		$this->assertEquals(1071972352, $model10->owner->sort);
-		$model10->sorterMoveAfter(8);
+		$model10->sorterMoveToModelAfter(8);
 		$this->assertEquals(1071939584, $model10->owner->sort);
 		$model9 = $this->loadModel(9);
 		$this->assertEquals(1071972352, $model9->owner->sort);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @expectedException SorterKeyNotFindExeption
 	 * @expectedExceptionMessage pk(100500) not find in db
 	 */
-	public function testSorterMoveAfterException() {
+	public function testSorterMoveToModelAfterException() {
 		$model64 = $this->loadModel(64);
-		$model64->sorterMoveAfter(100500);
+		$model64->sorterMoveToModelAfter(100500);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @covers SorterActiveRecordBehavior::moveToBeginFast
 	 * @covers SorterActiveRecordBehavior::moveBetween
 	 */
-	public function testSorterMoveBefore() {
+	public function testSorterMoveToModelBefore() {
 		$model64 = $this->loadModel(64);
 		$this->assertEquals(1073741824, $model64->owner->sort);
 		// swap
-		$model64->sorterMoveBefore(63);
+		$model64->sorterMoveToModelBefore(63);
 		$this->assertEquals(1073709056, $model64->owner->sort);
 		$model63 = $this->loadModel(63);
 		$this->assertEquals(1073741824, $model63->owner->sort);
 		// std move
-		$model64->sorterMoveBefore(10);
+		$model64->sorterMoveToModelBefore(10);
 		$this->assertEquals(1071955968, $model64->owner->sort);
 		// std move to begin
-		$model64->sorterMoveBefore(1);
+		$model64->sorterMoveToModelBefore(1);
 		$this->assertEquals(1071644672, $model64->owner->sort);
 		// before own
 		$model100 = $this->loadModel(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
-		$model100->sorterMoveBefore(100);
+		$model100->sorterMoveToModelBefore(100);
 		$this->assertEquals(1074921472, $model100->owner->sort);
 		// swap from down
 		$model10 = $this->loadModel(10);
 		$this->assertEquals(1071972352, $model10->owner->sort);
-		$model10->sorterMoveBefore(12);
+		$model10->sorterMoveToModelBefore(12);
 		$this->assertEquals(1072005120, $model10->owner->sort);
 		$model11 = $this->loadModel(11);
 		$this->assertEquals(1071972352, $model11->owner->sort);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @expectedException SorterKeyNotFindExeption
 	 * @expectedExceptionMessage pk(100500) not find in db
 	 */
-	public function testSorterMoveBeforeException() {
+	public function testSorterMoveToModelBeforeException() {
 		$model64 = $this->loadModel(64);
-		$model64->sorterMoveBefore(100500);
+		$model64->sorterMoveToModelBefore(100500);
 	}
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToPositionBefore
-	 * @covers SorterActiveRecordBehavior::sorterMoveBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToPosition
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 */
 	public function testSorterMoveToPositionBefore() {
 		// Remove the following lines when you implement this test.
@@ -639,7 +653,8 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 	
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToPositionAfter
-	 * @covers SorterActiveRecordBehavior::sorterMoveAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToPosition
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 */
 	public function testSorterMoveToPositionAfter() {
 		// Remove the following lines when you implement this test.
@@ -703,12 +718,12 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		
 		$modelAfter = $this->createModel();
 		$modelAfter->name = 'after';
-		$modelAfter->sorterMoveAfter(64);
+		$modelAfter->sorterMoveToModelAfter(64);
 		$this->assertEquals(1073758208, $modelAfter->owner->sort);
 		
 		$modelBefore = $this->createModel();
 		$modelBefore->name = 'before';
-		$modelBefore->sorterMoveBefore(64);
+		$modelBefore->sorterMoveToModelBefore(64);
 		$this->assertEquals(1073725440, $modelBefore->owner->sort);
 		
 		$model = $this->createModel();

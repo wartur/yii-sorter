@@ -141,19 +141,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * We do swapp through app server
 	 */
 	public function sorterMoveUp() {
-		if ($this->owner->getIsNewRecord()) {
-			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterCurrentMoveUp not support when it is new record'));
-		}
-
-		$upModel = $this->owner->model()->find(array(
-			'condition' => "t.{$this->sortField} < :sort",
-			'order' => "t.{$this->sortField} DESC",
-			'params' => array('sort' => $this->owner->{$this->sortField}),
-		));
-
-		if (isset($upModel)) {
-			$this->sorterSwappWith($upModel);
-		}
+		$this->sorterMove(true);
 	}
 
 	/**
@@ -163,49 +151,49 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * We do swapp through app server
 	 */
 	public function sorterMoveDown() {
+		$this->sorterMove(false);
+	}
+
+	/**
+	 * Унифицированный метод передвижения
+	 * @param type $up
+	 */
+	public function sorterMove($up) {
 		if ($this->owner->getIsNewRecord()) {
-			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterCurrentMoveDown not support when it is new record'));
+			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterMoveUp sorterMoveDown not support when it is new record'));
 		}
 
-		$downModel = $this->owner->model()->find(array(
-			'condition' => "t.{$this->sortField} > :sort",
-			'order' => "t.{$this->sortField} ASC",
+		$upModel = $this->owner->model()->find(array(
+			'condition' => "t.{$this->sortField} " . ($up ? '< :sort' : '> :sort'),
+			'order' => "t.{$this->sortField} " . ($up ? 'DESC' : 'ASC'),
 			'params' => array('sort' => $this->owner->{$this->sortField}),
 		));
 
-		if (isset($downModel)) {
-			$this->sorterSwappWith($downModel);
+		if (isset($upModel)) {
+			$this->sorterSwappWith($upModel);
 		}
 	}
 
 	/**
 	 * Move to begin. Public implementation
+	 * alias sorterMoveTo(true)
 	 */
 	public function sorterMoveToBegin($onlySet = false) {
-		$records = $this->owner->model()->findAll(array(
-			'limit' => 2,
-			'order' => "t.{$this->sortField} ASC",
-		));
-
-		if (empty($records)) {
-			$this->insertFirst($onlySet);
-		} elseif (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-			// если это операция вставки новой записи, то она никогда не произойдет так как getPrimaryKey => null
-			$this->sorterSwappWith($records[0]); // swap
-		} elseif (isset($records[0]) && $records[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-			// noop
-		} else {
-			$this->moveToBeginFast($records[0]->{$this->sortField}, $onlySet); // standart move
-		}
+		$this->sorterMoveTo(true, $onlySet);
 	}
 
 	/**
 	 * Move to end. Public implementation
+	 * alias sorterMoveTo(false)
 	 */
 	public function sorterMoveToEnd($onlySet = false) {
+		$this->sorterMoveTo(false, $onlySet);
+	}
+
+	public function sorterMoveTo($begin, $onlySet = false) {
 		$records = $this->owner->model()->findAll(array(
 			'limit' => 2,
-			'order' => "t.{$this->sortField} DESC",
+			'order' => "t.{$this->sortField} " . ($begin ? 'ASC' : 'DESC'),
 		));
 
 		if (empty($records)) {
@@ -216,7 +204,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		} elseif (isset($records[0]) && $records[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
 			// noop
 		} else {
-			$this->moveToEndFast($records[0]->{$this->sortField}, $onlySet); // standart move
+			if ($begin) {
+				$this->moveToBeginFast($records[0]->{$this->sortField}, $onlySet); // standart move
+			} else {
+				$this->moveToEndFast($records[0]->{$this->sortField}, $onlySet); // standart move
+			}
 		}
 	}
 
@@ -224,19 +216,31 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * Move current record up on count of position relatively sortField ASC
 	 * @param int $number count of record to move
 	 */
-	public function sorterMoveUpNumber($number) {
+	public function sorterMoveNumberUp($number) {
+		$this->sorterMoveNumber(true, $number);
+	}
+
+	/**
+	 * Move current record down on count of position relatively sortField ASC
+	 * @param int $number count of record to move
+	 */
+	public function sorterMoveNumberDown($number) {
+		$this->sorterMoveNumber(false, $number);
+	}
+
+	public function sorterMoveNumber($up, $number) {
 		if ($this->owner->getIsNewRecord()) {
-			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterCurrentMoveUpNumber not support when it is new record'));
+			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterMoveUpNumber sorterMoveDownNumber not support when it is new record'));
 		}
 
 		if ($number < 0) { // process negative
-			$this->sorterMoveDownNumber(-$number);
+			$this->sorterMoveNumber(!$up, -$number);
 		} elseif ($number == 1) { // optimize. swapp it
-			$this->sorterMoveUp();
+			$this->sorterMove($up);
 		} elseif ($number > 1) { // move at several records
 			$condition = new CDbCriteria();
-			$condition->addCondition("t.{$this->sortField} <= :sort");
-			$condition->order = "t.{$this->sortField} DESC";
+			$condition->addCondition("t.{$this->sortField} " . ($up ? '<= :sort' : '>= :sort'));
+			$condition->order = "t.{$this->sortField} " . ($up ? 'DESC' : 'ASC');
 			$condition->offset = $number;
 			$condition->limit = 2;
 			$condition->params['sort'] = $this->owner->{$this->sortField};
@@ -245,9 +249,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 			$count = count($upModels);
 			if ($count == 0) { // 0, to move first
-				$this->sorterMoveToBegin();
+				$this->sorterMoveTo($up);
 			} elseif ($count == 1) { // 1, to move first
-				$this->moveToBeginFast($upModels[0]->{$this->sortField});
+				if ($up) {
+					$this->moveToBeginFast($upModels[0]->{$this->sortField});
+				} else {
+					$this->moveToEndFast($upModels[0]->{$this->sortField});
+				}
 			} elseif ($count == 2) {
 				$this->moveBetween($upModels[0]->{$this->sortField}, $upModels[1]->{$this->sortField});
 			}
@@ -255,45 +263,22 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Move current record down on count of position relatively sortField ASC
-	 * @param int $number count of record to move
+	 * Replace current record before pk relatively sortField ASC
+	 * @param mixed $pk insert before this pk
 	 */
-	public function sorterMoveDownNumber($number) {
-		if ($this->owner->getIsNewRecord()) {
-			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'sorterCurrentMoveDownNumber not support when it is new record'));
-		}
-
-		if ($number < 0) { // process negative
-			$this->sorterMoveUpNumber(-$number);
-		} elseif ($number == 1) { // optimize. swapp it
-			$this->sorterMoveDown();
-		} elseif ($number > 1) { // move at several records
-			$condition = new CDbCriteria();
-			$condition->addCondition("t.{$this->sortField} >= :sort");
-			$condition->order = "t.{$this->sortField} ASC";
-			$condition->offset = $number;
-			$condition->limit = 2;
-			$condition->params['sort'] = $this->owner->{$this->sortField};
-
-			$downModels = $this->owner->model()->findAll($condition);
-
-			$count = count($downModels);
-			if ($count == 0) { // 0, to move first
-				$this->sorterMoveToEnd();
-			} elseif ($count == 1) { // 1, to move first
-				$this->moveToEndFast($downModels[0]->{$this->sortField});
-			} elseif ($count == 2) {
-				$this->moveBetween($downModels[0]->{$this->sortField}, $downModels[1]->{$this->sortField});
-			}
-		}
+	public function sorterMoveToModelBefore($pk, $onlySet = false) {
+		$this->sorterMoveToModel(true, $pk, $onlySet);
 	}
 
 	/**
 	 * Replace current record after pk relatively sortField ASC
 	 * @param mixed $pk insert after this pk
 	 */
-	public function sorterMoveAfter($pk, $onlySet = false) {
+	public function sorterMoveToModelAfter($pk, $onlySet = false) {
+		$this->sorterMoveToModel(false, $pk, $onlySet);
+	}
 
+	public function sorterMoveToModel($before, $pk, $onlySet = false) {
 		// cross method optimisation
 		if ($pk instanceof CActiveRecord) {
 			$movePlaceAfterModel = $pk;
@@ -313,8 +298,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		$beforeModel = $this->owner->model()->find(array(
-			'condition' => "t.{$this->sortField} < :sort",
-			'order' => "t.{$this->sortField} DESC",
+			'condition' => "t.{$this->sortField} " . ($before ? '> :sort' : '< :sort'),
+			'order' => "t.{$this->sortField} " . ($before ? 'ASC' : 'DESC'),
 			'params' => array(
 				'sort' => $movePlaceAfterModel->{$this->sortField}
 			)
@@ -324,8 +309,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			$this->sorterSwappWith($movePlaceAfterModel);
 		} else {
 			$afterPlaceModels = $this->owner->model()->findAll(array(
-				'condition' => "t.{$this->sortField} > :sort",
-				'order' => "t.{$this->sortField} ASC",
+				'condition' => "t.{$this->sortField} " . ($before ? '< :sort' : '> :sort'),
+				'order' => "t.{$this->sortField} " . ($before ? 'DESC' : 'ASC'),
 				'limit' => 2,
 				'params' => array(
 					'sort' => $movePlaceAfterModel->{$this->sortField}
@@ -333,7 +318,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			));
 
 			if (empty($afterPlaceModels)) { // nothing not find - is end
-				$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
+				if ($before) {
+					$this->moveToBeginFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
+				} else {
+					$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
+				}
 			} elseif (isset($afterPlaceModels[0]) && $afterPlaceModels[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
 				// do nothing... allready this
 			} elseif (isset($afterPlaceModels[1]) && $afterPlaceModels[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
@@ -347,85 +336,12 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Replace current record before pk relatively sortField ASC
-	 * @param mixed $pk insert before this pk
-	 */
-	public function sorterMoveBefore($pk, $onlySet = false) {
-
-		// cross method optimisation
-		if ($pk instanceof CActiveRecord) {
-			$movePlaceBeforeModel = $pk;
-
-			if ($this->owner->getPrimaryKey() == $movePlaceBeforeModel->getPrimaryKey()) { // not need replace before own.
-				return null;
-			}
-		} else {
-			if ($this->owner->getPrimaryKey() == $pk) { // not need replace before own.
-				return null;
-			}
-
-			$movePlaceBeforeModel = $this->owner->model()->findByPk($pk);
-			if (empty($movePlaceBeforeModel)) {
-				throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
-			}
-		}
-
-		$afterModel = $this->owner->model()->find(array(
-			'condition' => "t.{$this->sortField} > :sort",
-			'order' => "t.{$this->sortField} ASC",
-			'params' => array(
-				'sort' => $movePlaceBeforeModel->{$this->sortField}
-			)
-		));
-
-		if (isset($afterModel) && $afterModel->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-			$this->sorterSwappWith($movePlaceBeforeModel);
-		} else {
-			$beforePlaceModels = $this->owner->model()->findAll(array(
-				'condition' => "t.{$this->sortField} < :sort",
-				'order' => "t.{$this->sortField} DESC",
-				'limit' => 2,
-				'params' => array(
-					'sort' => $movePlaceBeforeModel->{$this->sortField}
-				)
-			));
-
-			if (empty($beforePlaceModels)) { // nothing not find - is end
-				$this->moveToBeginFast($movePlaceBeforeModel->{$this->sortField}, $onlySet);
-			} elseif (isset($beforePlaceModels[0]) && $beforePlaceModels[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				// do nothing... allready this
-			} elseif (isset($beforePlaceModels[1]) && $beforePlaceModels[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				// is next after this
-				$this->sorterSwappWith($beforePlaceModels[0]);
-			} else {
-				// between $afterPlaceModels[0] && $movePlaceAfterModel
-				$this->moveBetween($beforePlaceModels[0]->{$this->sortField}, $movePlaceBeforeModel->{$this->sortField}, $onlySet);
-			}
-		}
-	}
-
-	/**
 	 * 
 	 * @param type $position
 	 * @param type $onlySet
 	 */
 	public function sorterMoveToPositionBefore($position, $onlySet = false) {
-		if ($position <= 1) {
-			$this->sorterMoveToBegin();
-		} else {
-			$model = $this->owner->model()->find(array(
-				'order' => "t.{$this->sortField} ASC",
-				'offset' => $position - 1,
-			));
-
-			if (empty($model)) {
-				$this->sorterMoveToEnd($onlySet);
-			} else {
-				// находим позицию.
-				// делаем moveBefore
-				$this->sorterMoveBefore($model, $onlySet);
-			}
-		}
+		$this->sorterMoveToPosition(true, $position, $onlySet);
 	}
 
 	/**
@@ -434,8 +350,12 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @param type $onlySet
 	 */
 	public function sorterMoveToPositionAfter($position, $onlySet = false) {
-		if ($position <= 0) {
-			$this->sorterMoveToBegin();
+		$this->sorterMoveToPosition(false, $position, $onlySet);
+	}
+
+	public function sorterMoveToPosition($before, $position, $onlySet = false) {
+		if ($position <= ($before ? 1 : 0)) {
+			$this->sorterMoveTo(true, $onlySet);
 		} else {
 			$model = $this->owner->model()->find(array(
 				'order' => "t.{$this->sortField} ASC",
@@ -443,12 +363,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			));
 
 			if (empty($model)) {
-				// позиция не найдена. Вставляем в конец.
-				$this->sorterMoveToEnd($onlySet);
+				$this->sorterMoveTo(false, $onlySet);
 			} else {
 				// находим позицию.
-				// делаем moveBefore
-				$this->sorterMoveAfter($model, $onlySet);
+				$this->sorterMoveToModel($before, $model, $onlySet);
 			}
 		}
 	}
@@ -490,7 +408,6 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			if ($newFreeSortSpaceBitSizeNatural === null) {
 				$this->normalizeSortFieldExtreme($elementCount);
 			} else {
-
 				$maxSortField = $this->mathMaxSortField();
 
 				// это центрально-взвешенный элемент
@@ -506,11 +423,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	 * @return integer next sort value
 	 */
 	public function sorterSetNextInsertSortValue() {
-		if ($this->defaultInsertToEnd) {
-			$this->sorterMoveToEnd(true);
-		} else {
-			$this->sorterMoveToBegin(true);
-		}
+		$this->sorterMoveTo(!$this->defaultInsertToEnd, true);
 
 		return $this->owner->{$this->sortField};
 	}

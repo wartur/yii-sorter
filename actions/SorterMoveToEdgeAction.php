@@ -25,11 +25,7 @@ class SorterMoveToEdgeAction extends SorterAbstractMoveAction {
 	public function transactionRun(CActiveRecord $model) {
 
 		/* @var $model SorterActiveRecordBehavior */
-		if ($this->getIsDirectionUp()) {
-			$model->sorterMoveToBegin();
-		} else {
-			$model->sorterMoveToEnd();
-		}
+		$model->sorterMoveTo($this->getIsDirectionUp());
 	}
 
 }

@@ -116,14 +116,13 @@ class SorterActiveRecordBehaviorFullFillTest extends CDbTestCase {
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
 	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
 	 */
-	public function testExtreemFill() {
+	public function testExtreemFillEnd() {
 		try {
-			$i = 1;
-			while (true) {	// cycle until an exception
+			$i = 0;
+			while (++$i) {	// cycle until an exception
 				$model = $this->createModel();
 				$model->name = $i;
 				$this->assertTrue($model->save());
-				++$i;
 			}
 		} catch (SorterOutOfFreeSortSpaceExeption $ex) {
 			// mast to be COUNT == 510
@@ -137,6 +136,82 @@ class SorterActiveRecordBehaviorFullFillTest extends CDbTestCase {
 					'name' => $i,
 					'sort' => $i,
 				);
+			}
+			
+			// select all. assert order 1 to 62
+			$resultArray = Yii::app()->db->createCommand('SELECT id, name, sort FROM sortest WHERE 1 ORDER BY sort ASC')->queryAll();
+			$this->assertEquals($expectedArray, $resultArray);
+		}
+	}
+	
+	/**
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
+	 */
+	public function testExtreemFillBegin() {
+		try {
+			$i = 0;
+			while (++$i) {	// cycle until an exception
+				$model = $this->createModel();
+				$model->name = $i;
+				$model->sorterMoveToBegin(true);
+				$this->assertTrue($model->save());
+			}
+		} catch (SorterOutOfFreeSortSpaceExeption $ex) {
+			// mast to be COUNT == 510
+			$this->assertEquals(62, Yii::app()->db->createCommand('SELECT COUNT(*) FROM sortest WHERE 1')->queryScalar());
+			
+			// compare array more faster and informative. generate its.
+			$expectedArray = array();
+			for($i = 1, $s = 62; $i <= 62; ++$i, --$s) {	// sort have desc order
+				$expectedArray[] = array(
+					'id' => $i,
+					'name' => $i,
+					'sort' => $s,
+				);
+			}
+			
+			// select all. assert order 1 to 62
+			$resultArray = Yii::app()->db->createCommand('SELECT id, name, sort FROM sortest WHERE 1 ORDER BY sort DESC')->queryAll();
+			$this->assertEquals($expectedArray, $resultArray);
+		}
+	}
+	
+	/**
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldOnthefly
+	 * @covers SorterActiveRecordBehavior::normalizeSortFieldExtreme
+	 */
+	public function testExtreemFillMiddle() {
+		$expectedArray = array();
+		
+		try {
+			$i = 0;
+			while (++$i) {	// cycle until an exception
+				$middlePosition = $i >> 1;
+				
+				$model = $this->createModel();
+				$model->name = $i;
+				$model->sorterMoveToPositionAfter($middlePosition, true);
+				$this->assertTrue($model->save());
+				
+				$inserted = array(
+					array(
+						'id' => $model->id,
+						'name' => $model->name,
+						'sort' => $model->sort,
+					)
+				);
+				
+				// insert middle in $expectedArray
+				array_splice($expectedArray, $middlePosition, 0, $inserted);
+			}
+		} catch (SorterOutOfFreeSortSpaceExeption $ex) {
+			// mast to be COUNT == 510
+			$this->assertEquals(62, Yii::app()->db->createCommand('SELECT COUNT(*) FROM sortest WHERE 1')->queryScalar());
+			
+			$i = 0;
+			foreach ($expectedArray as &$entry) {
+				$entry['sort'] = ++$i;
 			}
 			
 			// select all. assert order 1 to 62

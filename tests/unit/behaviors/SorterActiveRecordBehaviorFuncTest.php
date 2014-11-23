@@ -208,79 +208,81 @@ class SorterActiveRecordBehaviorFuncTest extends CDbTestCase {
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveUpNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberUp
 	 */
-	public function testSorterMoveUpNumber() {
+	public function testSorterMoveNumberUp() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1071972352 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1072005120 && sort <= 1072300032 ORDER BY sort ASC');
 		$model = $this->loadModel(21);
-		$model->sorterMoveUpNumber(10);
+		$model->sorterMoveNumberUp(10);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1072300032 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveDownNumber
+	 * @covers SorterActiveRecordBehavior::sorterMoveNumberDown
 	 */
-	public function testSorterMoveDownNumber() {
+	public function testSorterMoveNumberDown() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1075150848 && sort <= 1075445760 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1075478528 && sort <= 1075806208 ORDER BY sort ASC');
 		$model = $this->loadModel(106);
-		$model->sorterMoveDownNumber(10);
+		$model->sorterMoveNumberDown(10);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1075150848 && sort <= 1075806208 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @covers SorterActiveRecordBehavior::moveToEndFast
 	 * @covers SorterActiveRecordBehavior::moveBetween
 	 */
-	public function testSorterMoveAfter() {
+	public function testSorterMoveToModelAfter() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1071972352 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1072005120 && sort <= 1072300032 ORDER BY sort ASC');
 		$model = $this->loadModel(21);
-		$model->sorterMoveAfter(10);
+		$model->sorterMoveToModelAfter(10);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1072300032 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
 
 	/**
-	 * @covers SorterActiveRecordBehavior::sorterMoveBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModelBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 * @covers SorterActiveRecordBehavior::moveToBeginFast
 	 * @covers SorterActiveRecordBehavior::moveBetween
 	 */
-	public function testSorterMoveBefore() {
+	public function testSorterMoveToModelBefore() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1071972352 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1072005120 && sort <= 1072300032 ORDER BY sort ASC');
 		$model = $this->loadModel(21);
-		$model->sorterMoveBefore(11);
+		$model->sorterMoveToModelBefore(11);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1072300032 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
 
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToPositionBefore
-	 * @covers SorterActiveRecordBehavior::sorterMoveBefore
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 */
 	public function testSorterMoveToPositionBefore() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1071972352 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1072005120 && sort <= 1072300032 ORDER BY sort ASC');
 		$model = $this->loadModel(21);
-		$model->sorterMoveBefore(11);
+		$model->sorterMoveToModelBefore(11);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1072300032 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
 	
 	/**
 	 * @covers SorterActiveRecordBehavior::sorterMoveToPositionAfter
-	 * @covers SorterActiveRecordBehavior::sorterMoveAfter
+	 * @covers SorterActiveRecordBehavior::sorterMoveToModel
 	 */
 	public function testSorterMoveToPositionAfter() {
 		$srcArray1 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1071972352 ORDER BY sort ASC');
 		$srcArray2 = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1072005120 && sort <= 1072300032 ORDER BY sort ASC');
 		$model = $this->loadModel(21);
-		$model->sorterMoveAfter(10);
+		$model->sorterMoveToModelAfter(10);
 		$dscArray = self::quertyColumn('SELECT id FROM sortest WHERE sort >= 1071677440 && sort <= 1072300032 ORDER BY sort ASC');
 		$this->assertEquals(array_merge($srcArray1, array($model->id), $srcArray2), $dscArray);
 	}
