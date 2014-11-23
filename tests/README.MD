@@ -15,8 +15,3 @@ sorter.tests в application/test/unit/extentions/wartur/yii-sorter
 
 - Сделайте импорт директории в конфигурационные файлы
 sorter.test-env.models
-
-TODO:
-==================
-- сделать тест moveToBegin с регулярной нормализацией (на других фикстурах)
-- сделать тест moveToBegin с экстремальной нормализацией (на других фикстурах)

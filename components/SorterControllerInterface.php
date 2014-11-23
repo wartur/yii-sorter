@@ -10,7 +10,7 @@
  */
 
 /**
- * Controller interface for work with Sorter Actions.
+ * Controller interface for work with Sorter Actions
  * You can use this interface or SorterControllerBehavior
  * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
@@ -19,7 +19,7 @@
 interface SorterControllerInterface {
 
 	/**
-	 * Loading work model for current controller
+	 * The method is responsible for loading the model and check its existence
 	 * @param mixed $pk
 	 */
 	public function loadModel($pk);

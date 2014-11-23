@@ -10,7 +10,10 @@
  */
 
 /**
- * SorterAbstractMoveAction
+ * Abstract action movement records
+ * This class checks for the presence of parameters in GET | POST,
+ * receives the value creates a transaction and invokes the immediate
+ * implementation of the action (transactionRun)
  * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0
@@ -18,45 +21,36 @@
 abstract class SorterAbstractMoveAction extends CAction {
 
 	/**
-	 * 
+	 * Direction parameter :: to up
 	 */
 	const DIRECTION_UP = 'up';
 
 	/**
-	 * 
+	 * Direction parameter :: to down
 	 */
 	const DIRECTION_DOWN = 'down';
 
 	/**
-	 * 
+	 * Direction parameter from GET|POST
 	 */
 	const DIRECTION = 'd';
 
 	/**
-	 * 
+	 * Parameter of additional parameter of the action from GET|POST
 	 */
 	const PARAM = 'p';
 
 	/**
-	 * 
-	 */
-	const FLASH_HIGHLIGHT_PREFIX = 'sorterFlash';
-
-	/**
-	 *
-	 * @var boolean
-	 */
-	public $useFlashHighlight = true;
-
-	/**
-	 * 
+	 * The method in which the action is moving directly
 	 */
 	abstract public function transactionRun(CActiveRecord $model);
 
 	/**
-	 * 
-	 * @throws CHttpException
-	 * @throws CException
+	 * Inherited from CAction. The method takes parameters,
+	 * validates and creates the transaction and performs the specified command
+	 * @param string $id record identifier (primary key), a required parameter GET ['id']
+	 * @throws CHttpException 400 bad request, if is not POST request
+	 * @throws CException 500 error if something went wrong
 	 */
 	public function run($id) {
 		if (!Yii::app()->request->isPostRequest) {
@@ -92,8 +86,11 @@ abstract class SorterAbstractMoveAction extends CAction {
 	}
 
 	/**
-	 * 
-	 * @return integer
+	 * Get an additional parameter movement recording
+	 * @param boolean $post if true, it means taking from POST or GET taken from
+	 * @param boolean $convertToInt whether the results are needed to convert to a particular type
+	 * @return boolean|string the result of obtaining the parameter script
+	 * @throws CHttpException 400 bad request, if the parameter was not passed
 	 */
 	public function getParam($post = false, $convertToInt = true) {
 		$source = $post === false ? $_GET : $_POST;
@@ -106,8 +103,9 @@ abstract class SorterAbstractMoveAction extends CAction {
 	}
 
 	/**
-	 * 
-	 * @return integer
+	 * Get the parameter direction of travel records
+	 * @return string up - moving upward, down - move down
+	 * @throws CHttpException 400 bad request, if the parameter was not passed
 	 */
 	public function getDirection() {
 		if (isset($_GET[self::DIRECTION]) && $_GET[self::DIRECTION] == self::DIRECTION_UP || $_GET[self::DIRECTION] == self::DIRECTION_DOWN) {
@@ -118,8 +116,8 @@ abstract class SorterAbstractMoveAction extends CAction {
 	}
 
 	/**
-	 * 
-	 * @return boolean
+	 * Get moving direction recording
+	 * @return boolean true - the direction of travel up, false - down
 	 */
 	public function getIsDirectionUp() {
 		return $this->getDirection() === self::DIRECTION_UP;

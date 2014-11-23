@@ -14,6 +14,16 @@ Yii::import('sorter.components.SorterControllerInterface', true);
  * Controller behavior for sorting actions.
  * Please read SorterControllerInterface for interesting information
  * 
+ * Using in CController
+ * <pre>
+ *	public function behaviors() {
+ *		return array_merge(parent::behaviors(), array(
+ *			'SorterControllerBehavior' => 'sorter.behaviors.SorterControllerBehavior',,
+ *			'className' => 'Sortest',
+ *		));
+ *	}
+ * </pre>
+ * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0
  */

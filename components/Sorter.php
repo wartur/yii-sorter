@@ -11,6 +11,17 @@
 
 /**
  * Sorter application component
+ * Application component that provides illumination records in GridView
+ * 
+ * Using highlight in CGridView:
+ * <pre>
+ * 	$this->widget('zii.widgets.grid.CGridView', array(
+ * 		'dataProvider' => $model->search(),
+ * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data)',
+ * 		'afterAjaxUpdate' => Yii::app()->sorter->fhGridAfterUpdateCode(true),
+ * 		'columns' => array('id'),
+ * 	));
+ * </pre>
  * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0
@@ -18,54 +29,50 @@
 class Sorter extends CApplicationComponent {
 
 	/**
-	 * 
+	 * Name prefix flash storage
 	 */
 	const FLASH_HIGHLIGHT_NAME = 'sorterFlashlight';
 
 	/**
-	 *
-	 * @var type 
+	 * @var string the name of the css class that represents the highlight of the table
 	 */
-	public $flashHighlightClass = 'sorterFlashHighlight';
+	public $flashHighlightCssClass = 'sorterFlashHighlight';
 
 	/**
-	 *
-	 * @var type 
+	 * @var int backlight time table rows in milliseconds
 	 */
 	public $flashHighlightTime = 4000;
 
 	/**
-	 *
-	 * @var type 
+	 * @var string the illumination color
 	 */
 	public $flashHighlightBackground = '#ffff99';
 
 	/**
-	 *
-	 * @var boolean
+	 * @var boolean enables or disables the system illumination table rows
 	 */
 	public $useFlashHighlight = false;
 
 	/**
-	 *
-	 * @var type 
-	 */
-	private $scriptIsRegister = false;
-
-	/**
-	 *
-	 * @var type 
+	 * @var array cache backlight units
 	 */
 	private $casheFlash = [];
 
+	/**
+	 * Initializes the application component.
+	 * This method is required by {@link IApplicationComponent} and is invoked by application.
+	 * If you override this method, make sure to call the parent implementation
+	 * so that the application component can be marked as initialized.
+	 */
 	public function init() {
 		parent::init();
 	}
 
 	/**
-	 * 
-	 * @param type $class
-	 * @param type $id
+	 * Set the class identifier and the record you wish to highlight
+	 * the next time the page is loaded or updating CGridView
+	 * @param string $class name of the class inherited from CActiveRecord
+	 * @param int $id record identifier (primary key)
 	 */
 	public function setFlashHighlight($class, $id) {
 		if ($this->useFlashHighlight) {
@@ -78,9 +85,9 @@ class Sorter extends CApplicationComponent {
 	}
 
 	/**
-	 * 
-	 * @param type $class
-	 * @return type
+	 * Get a record you wish to highlight
+	 * @param string $class name of the class inherited from CActiveRecord
+	 * @return int record identifier (primary key)
 	 */
 	public function getFlashHighlight($class) {
 		if (!isset($this->casheFlash[$class])) {
@@ -91,12 +98,11 @@ class Sorter extends CApplicationComponent {
 	}
 
 	/**
-	 * 
-	 * @param type $model
-	 * @return boolean
+	 * Checks whether the model parameters passed to the illuminated entry
+	 * @param CActiveRecord $model model to check the condition of illumination
+	 * @return boolean true, if the model is the one that you want to highlight
 	 */
 	public function isFlashHighlightModel($model) {
-		// проверяем есть ли в флешах данная модель
 		if (in_array($model->getPrimaryKey(), $this->getFlashHighlight(get_class($model)))) {
 			return true;
 		} else {
@@ -105,22 +111,53 @@ class Sorter extends CApplicationComponent {
 	}
 
 	/**
+	 * The method returns a CGridView::rowHtmlOptionsExpression options for highlighting lines
 	 * 
-	 * @param type $model
-	 * @param type $srcArrayExpressionResult
-	 * @return type
+	 * Using in CGridView:
+	 * <pre>
+	 * 	$this->widget('zii.widgets.grid.CGridView', array(
+	 * 		'dataProvider' => $model->search(),
+	 * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data)',
+	 * 		'afterAjaxUpdate' => Yii::app()->sorter->fhGridAfterUpdateCode(true),
+	 * 		'columns' => array('id'),
+	 * 	));
+	 * </pre>
+	 * 
+	 * You might to use srcArrayExpressionResult, to add a custom class
+	 * to a table row or perform other rowHtmlOptionsExpression
+	 * <pre>
+	 * 	// add some class 
+	 * 	$this->widget('zii.widgets.grid.CGridView', array(
+	 * 		'dataProvider' => $model->search(),
+	 * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data, array("class" => "myclass"))',
+	 * 		'afterAjaxUpdate' => Yii::app()->sorter->fhGridAfterUpdateCode(true),
+	 * 		'columns' => array('id'),
+	 * 	));
+	 * 
+	 * 	// add other expression
+	 * 	$this->widget('zii.widgets.grid.CGridView', array(
+	 * 		'dataProvider' => $model->search(),
+	 * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data, $data->myOtherExpression())',
+	 * 		'afterAjaxUpdate' => Yii::app()->sorter->fhGridAfterUpdateCode(true),
+	 * 		'columns' => array('id'),
+	 * 	));
+	 * </pre>
+	 * 
+	 * @param CActiveRecord $model model to check the condition of illumination
+	 * @param array $srcArrayExpressionResult the result of the original expression
+	 * @return array expression result
 	 */
 	public function fhGridRowHtmlOptionsExpression($model, $srcArrayExpressionResult = array()) {
 		if ($this->useFlashHighlight && $this->isFlashHighlightModel($model)) {
 			if (is_array($srcArrayExpressionResult)) {
 				if (empty($srcArrayExpressionResult['class'])) {
-					$srcArrayExpressionResult['class'] = $this->flashHighlightClass;
+					$srcArrayExpressionResult['class'] = $this->flashHighlightCssClass;
 				} else {
-					$srcArrayExpressionResult['class'] .= ' ' . $this->flashHighlightClass;
+					$srcArrayExpressionResult['class'] .= ' ' . $this->flashHighlightCssClass;
 				}
 			} else {
 				$srcArrayExpressionResult = array(
-					'class' => $this->flashHighlightClass
+					'class' => $this->flashHighlightCssClass
 				);
 			}
 		}
@@ -129,9 +166,31 @@ class Sorter extends CApplicationComponent {
 	}
 
 	/**
+	 * The method returns a CGridView::afterAjaxUpdate JavaScript for highlighting lines
 	 * 
-	 * @param type $fullCallback
-	 * @return type
+	 * Using in CGridView:
+	 * <pre>
+	 * // Heads up! you must pass "true" parameter, if you use this method standalone
+	 * 	$this->widget('zii.widgets.grid.CGridView', array(
+	 * 		'dataProvider' => $model->search(),
+	 * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data)',
+	 * 		'afterAjaxUpdate' => Yii::app()->sorter->fhGridAfterUpdateCode(true),
+	 * 		'columns' => array('id'),
+	 * 	));
+	 * </pre>
+	 * 
+	 * You might to use the method as part of your callback
+	 * <pre>
+	 * 	$this->widget('zii.widgets.grid.CGridView', array(
+	 * 		'dataProvider' => $model->search(),
+	 * 		'rowHtmlOptionsExpression' => 'Yii::app()->sorter->fhGridRowHtmlOptionsExpression($data)',
+	 * 		'afterAjaxUpdate' => 'js:function(){console.log("myCallback") ' . Yii::app()->sorter->fhGridAfterUpdateCode() . '}',
+	 * 		'columns' => array('id'),
+	 * 	));
+	 * </pre>
+	 * 
+	 * @param boolean $fullCallback true if it's standalone callback
+	 * @return string JavaScript code which is executed afterAjaxUpdate
 	 */
 	public function fhGridAfterUpdateCode($fullCallback = false) {
 		if ($this->useFlashHighlight === false) {
@@ -140,7 +199,7 @@ class Sorter extends CApplicationComponent {
 
 		Yii::app()->clientScript->registerCoreScript('jquery.ui');
 
-		$js = "jQuery('.{$this->flashHighlightClass}').effect('highlight', {color:'{$this->flashHighlightBackground}'}, {$this->flashHighlightTime})";
+		$js = "jQuery('.{$this->flashHighlightCssClass}').effect('highlight', {color:'{$this->flashHighlightBackground}'}, {$this->flashHighlightTime})";
 
 		return $fullCallback ? "js:function(){{$js}} " : " ;{$js}; ";
 	}
