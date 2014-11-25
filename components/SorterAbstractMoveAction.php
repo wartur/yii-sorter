@@ -15,6 +15,17 @@
  * receives the value creates a transaction and invokes the immediate
  * implementation of the action (transactionRun)
  * 
+ * Using in CController
+ *	public function actions() {
+ *		return array_merge(parent::actions(), array(
+ *			'sorterMoveNumber' => 'sorter.actions.SorterMoveNumberAction',
+ *			'sorterMoveOne' => 'sorter.actions.SorterMoveOneAction',
+ *			'sorterMoveToEdge' => 'sorter.actions.SorterMoveToEdgeAction',
+ *			'sorterMoveToModel' => 'sorter.actions.SorterMoveToModelAction',
+ *			'sorterMoveToPosition' => 'sorter.actions.SorterMoveToPositionAction',
+ *		));
+ *	}
+ * 
  * @author Krivtsov Artur (wartur) <gwartur@gmail.com> | Made in Russia
  * @since v1.0.0
  */
