@@ -436,41 +436,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
 			}
 		}
-
-		// загружаем модель на одну позицию выше модели перемещения
-		$beforeModel = $this->owner->model()->find(array(
-			'condition' => "t.{$this->sortField} " . ($before ? '> :sort' : '< :sort'),
-			'order' => "t.{$this->sortField} " . ($before ? 'ASC' : 'DESC'),
-			'params' => array(
-				'sort' => $movePlaceAfterModel->{$this->sortField}
-			)
-		));
-
-		if (isset($beforeModel) && $beforeModel->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-			if ($onlySet) {
-				// загрузим еще на одну модель выше
-				$beforeModelBefore = $this->owner->model()->find(array(
-					'condition' => "t.{$this->sortField} " . ($before ? '> :sort' : '< :sort'),
-					'order' => "t.{$this->sortField} " . ($before ? 'ASC' : 'DESC'),
-					'params' => array(
-						'sort' => $beforeModel->{$this->sortField}
-					)
-				));
-
-				if (empty($beforeModelBefore)) {
-					if ($before) {
-						$this->moveToBeginFast($beforeModel->{$this->sortField}, $onlySet);
-					} else {
-						$this->moveToEndFast($beforeModel->{$this->sortField}, $onlySet);
-					}
-				} else {
-					// очень неоптимально!!!
-					$this->moveBetween($beforeModel->{$this->sortField}, $beforeModelBefore->{$this->sortField}, $onlySet);
-				}
-			} else {
-				$this->sorterSwappWith($movePlaceAfterModel);
-			}
-		} else {
+			
+		if($onlySet) {
 			// загружаем модель на 2 позиции ниже модели перемещения
 			$afterPlaceModels = $this->owner->model()->findAll(array(
 				'condition' => "t.{$this->sortField} " . ($before ? '< :sort' : '> :sort'),
@@ -481,23 +448,53 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				)
 			));
 
-			if (empty($afterPlaceModels)) { // не найдено ни одной записи - это конец списка
+			if (empty($afterPlaceModels)) {
 				if ($before) {
 					$this->moveToBeginFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
 				} else {
 					$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
 				}
-			} elseif (isset($afterPlaceModels[0]) && $afterPlaceModels[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				// noop, мы уже тут
-			} elseif (isset($afterPlaceModels[1]) && $afterPlaceModels[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-				if ($onlySet) {
-					$this->moveBetween($afterPlaceModels[0]->{$this->sortField}, $movePlaceAfterModel->{$this->sortField}, $onlySet);
-				} else {
-					$this->sorterSwappWith($afterPlaceModels[0]);
-				}
 			} else {
-				// вставка в произвольное место
+				// очень неоптимально!!!
 				$this->moveBetween($afterPlaceModels[0]->{$this->sortField}, $movePlaceAfterModel->{$this->sortField}, $onlySet);
+			}
+		} else {
+			// загружаем модель на одну позицию выше модели перемещения
+			$beforeModel = $this->owner->model()->find(array(
+				'condition' => "t.{$this->sortField} " . ($before ? '> :sort' : '< :sort'),
+				'order' => "t.{$this->sortField} " . ($before ? 'ASC' : 'DESC'),
+				'params' => array(
+					'sort' => $movePlaceAfterModel->{$this->sortField}
+				)
+			));
+			
+			if(isset($beforeModel) && $beforeModel->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+				$this->sorterSwappWith($movePlaceAfterModel);
+			} else {
+				// загружаем модель на 2 позиции ниже модели перемещения
+				$afterPlaceModels = $this->owner->model()->findAll(array(
+					'condition' => "t.{$this->sortField} " . ($before ? '< :sort' : '> :sort'),
+					'order' => "t.{$this->sortField} " . ($before ? 'DESC' : 'ASC'),
+					'limit' => 2,
+					'params' => array(
+						'sort' => $movePlaceAfterModel->{$this->sortField}
+					)
+				));
+
+				if (empty($afterPlaceModels)) { // не найдено ни одной записи - это конец списка
+					if ($before) {
+						$this->moveToBeginFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
+					} else {
+						$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
+					}
+				} elseif (isset($afterPlaceModels[0]) && $afterPlaceModels[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+					// noop, мы уже тут
+				} elseif (isset($afterPlaceModels[1]) && $afterPlaceModels[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+					$this->sorterSwappWith($afterPlaceModels[0]);
+				} else {
+					// вставка в произвольное место
+					$this->moveBetween($afterPlaceModels[0]->{$this->sortField}, $movePlaceAfterModel->{$this->sortField}, $onlySet);
+				}
 			}
 		}
 	}

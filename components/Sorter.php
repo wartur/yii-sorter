@@ -49,9 +49,15 @@ class Sorter extends CApplicationComponent {
 	public $flashHighlightBackground = '#ffff99';
 
 	/**
-	 * @var boolean enables or disables the system illumination table rows
+	 * @var boolean enable or disable the system illumination table rows
 	 */
 	public $useFlashHighlight = false;
+	
+	/**
+	 * @var boolean enable or disable LOCK TABLES for work with DB
+	 * It is need to use if you are using MyISAM or MEMORY tables
+	 */
+	public $useLockTable = false;
 
 	/**
 	 * @var array cache backlight units

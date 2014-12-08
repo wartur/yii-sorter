@@ -67,6 +67,15 @@ abstract class SorterAbstractMoveAction extends CAction {
 		if (!Yii::app()->request->isPostRequest) {
 			throw new CHttpException(400, Yii::t('SorterAbstractMoveAction', 'Bad request. Can be only POST'));
 		}
+		
+		// for other storage like MyISAM or MEMORY
+		if(Yii::app()->sorter->useLockTable) {
+			Yii::app()->db->createCommand('LOCK TABLES sortest WRITE')->execute();
+			Yii::app()->db->createCommand('SET SESSION AUTOCOMMIT=0')->execute();
+		}
+		
+		// set maximum isolation level, to prevent phantom reads
+		Yii::app()->db->createCommand('SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE')->execute();
 
 		$transaction = Yii::app()->db->beginTransaction();
 		try {

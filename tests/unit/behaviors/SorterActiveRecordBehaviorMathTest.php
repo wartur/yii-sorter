@@ -309,6 +309,10 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		// it's test for moveToBegin optimisation if this record is fitst
 		$modelOnlySet->sorterMoveToBegin();
 		$this->assertEquals(1073709056, $modelOnlySet->owner->sort);
+		
+		// switch off optimisation if it is only set
+		$modelOnlySet2After->sorterMoveToBegin(true);
+		$this->assertEquals(1073676288, $modelOnlySet2After->owner->sort);
 	}
 
 	/**
@@ -415,9 +419,13 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		$modelRoundEndTest->owner->sort = 2147450880;
 		$this->assertTrue($modelRoundEndTest->save());
 		//
-		$modelRoundEndTest = $this->createModel();
-		$modelRoundEndTest->sorterMoveToEnd(true); // only set
-		$this->assertEquals(2147467263, $modelRoundEndTest->owner->sort);
+		$modelRoundEndTestModel2 = $this->createModel();
+		$modelRoundEndTestModel2->sorterMoveToEnd(true); // only set
+		$this->assertEquals(2147467263, $modelRoundEndTestModel2->owner->sort);
+		
+		// switch off optimisation if it is only set
+		$modelOnlySet->sorterMoveToEnd(true);
+		$this->assertEquals(2147450880, $modelRoundEndTest->owner->sort);
 	}
 	
 	/**
@@ -563,6 +571,28 @@ class SorterActiveRecordBehaviorMathTest extends CDbTestCase {
 		$this->assertEquals(1071939584, $model10->owner->sort);
 		$model9 = $this->loadModel(9);
 		$this->assertEquals(1071972352, $model9->owner->sort);
+	}
+	
+	public function testSorterMoveToModelAfterOnlyset() {
+		$model = $this->createModel();
+		$model->owner->name = 'onlysetInsert';
+		$model->sorterMoveToModelAfter(3, true);
+		$this->assertEquals(1071759360, $model->owner->sort);
+		$this->assertTrue($model->save());
+		
+		$model2 = $this->createModel();
+		$model2->owner->name = 'onlysetInsert2';
+		$model2->sorterMoveToModelAfter(127, true);
+		$this->assertEquals(1075838976, $model2->owner->sort);
+		$this->assertTrue($model2->save());
+	}
+	
+	public function testSorterMoveToModelBeforeOnlyset() {
+		$model = $this->createModel();
+		$model->owner->name = 'onlysetInsert';
+		$model->sorterMoveToModelBefore(1, true);
+		$this->assertEquals(1071644672, $model->owner->sort);
+		$this->assertTrue($model->save());
 	}
 
 	/**

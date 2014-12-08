@@ -23,7 +23,6 @@ class SorterMoveOneAction extends SorterAbstractMoveAction {
 	 * @param CActiveRecord $model
 	 */
 	public function transactionRun(CActiveRecord $model) {
-
 		/* @var $model SorterActiveRecordBehavior */
 		$model->sorterMove($this->getIsDirectionUp());
 	}
