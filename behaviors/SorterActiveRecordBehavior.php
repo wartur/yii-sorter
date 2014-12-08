@@ -13,35 +13,36 @@ Yii::import('sorter.behaviors.exceptions.*');
 /**
  * Behavior for custom sorting
  * 
- * Поведение поставляет работу с пользовательской сортировкой.
- * Поведение работает на основе алгоритма с разряженными массивами, тем самым
- * среднестатистическая вставка производится на один запрос на запись. Так же
- * для уменьшения деградации разряженного массива производятся несколько запросов
- * на чтение для определения специальных ситуаций и оптимизации их.
+ * Behavior allows you to work with a custom sorting
+ * Behavior-based algorithm works with sparse arrays, thereby
+ * average insert made one write request. To reduce the degradation
+ * discharged array algorithm produces multiple requests
+ * read to determine the specific situations and optimize it.
  * 
- * Поддержка параметра: $onlySet (только установить новое значение, но не забисывать в БД)
- * Некоторые методы из-за особенности реализации системы защиты от деградации
- * разояженного массива не могут быть использованы вместе с параметром $onlySet:
+ * === Important information!
+ * == Support parameter: $onlySet (only set a new sortField, but not write to the database)
+ * Some methods of particular realization of the system of protection against
+ * degradation discharged array can not be used in conjunction with the $onlySet:
  * - sorterMove*
  * - sorterMoveNumber*
- * Другие методы допускают работу с $onlySet, но в некоторых случаях это приводит
- * к увеличению скорости деградации массива. Все описания вы найдете непосредственно
- * у каждого метода:
+ * Other methods can operate with $onlySet, but in some cases this leads to
+ * an increase in degradation rate of the array.
+ * All the descriptions you can find directly from each method:
  * - sorterMoveTo*
  * - sorterMoveToModel*
  * - sorterMoveToPosition*
- * В идеале данный параметр используется только для первоначальной установки в моделе,
- * для последующей работы другой бизнес логики, но не для постоянного использования.
- * Вы можете сразуже выделить место для какой-то записи, далее заполнить оставшиеся поля
- * модели и сохранить её с использованием вашей бизнес логике.
+ * Ideally, this parameter is used only for the initial set in the model for subsequent
+ * work other business logic, but not for continuous use.
+ * You can immediately allocate space for any of the entries,
+ * then fill the rest of the field model and keep it with your business logic.
  * 
- * Некоторые методы работают сразуже после создания класса,
- * а некоторые нет. Это происходит из-за невозможности определить начальную позицию.
- * Не работают сразу после создания:
+ * == Some methods work immediately after the class, and some do not.
+ * This is due to the inability to define the initial position.
+ * Methods do not work immediately after its creation:
  * - sorterMove*
  * - sorterMoveNumber*
  * 
- * Работают сразу после создания:
+ * The method works immediately after creation:
  * - sorterMoveTo*
  * - sorterMoveToModel*
  * - sorterMoveToPosition*
@@ -64,38 +65,37 @@ Yii::import('sorter.behaviors.exceptions.*');
 class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 	/**
-	 * New record will be inserted to begin
+	 * The new record will be inserted into the top of the list
 	 */
 	const DEFAULT_INSERT_TO_BEGIN = false;
 
 	/**
-	 * New record will be inserted to end
+	 * The new record will be inserted into the end of the list
 	 */
 	const DEFAULT_INSERT_TO_END = true;
 
 	/**
-	 * > Политика обновления записей
-	 * Обновлять используя модели
+	 * > Policy update records
+	 * Update using model
 	 * @todo v1.2.1
 	 */
-	const UPDATE_POLITIC_USEMODEL = true;
+	const UPDATE_POLICY_USEMODEL = true;
 
 	/**
-	 * > Политика обновления записей
-	 * Обновлять используя sql запросы
+	 * > Policy update records
+	 * Update using pure sql queries
 	 * @todo v1.2.1
 	 */
-	const UPDATE_POLITIC_PURESQL = false;
+	const UPDATE_POLICY_PURESQL = false;
 
 	/**
-	 * @var string class sort field
-	 * Поле для управления сортировкой записей
-	 * Например `ORDER BY sort ASC`
+	 * @var string Field for sorting records management
+	 * Example `ORDER BY sort ASC`
 	 */
 	public $sortField = 'sort';
 
 	/**
-	 * @var string class group field
+	 * @var array Field for grouping records management
 	 * If use this field then the algorithm does all calculation in diapason of each group field
 	 * It is believed that it is a unique key in the fields groupField and sortField
 	 * 
@@ -109,46 +109,48 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public $defaultInsertToEnd = self::DEFAULT_INSERT_TO_END;
 
 	/**
-	 * @var boolean update politic
+	 * @var boolean policy update records
 	 * @todo 1.2.1
 	 */
-	public $updatePolitic = self::UPDATE_POLITIC_USEMODEL;
+	public $updatePolicy = self::UPDATE_POLICY_USEMODEL;
 
 	/**
-	 * @var int битовый размер поля сортировки деленное на 2
-	 * это число в натуральном размере является половиной поддерживаемого диапразона
-	 * поля сортировки, от 1 до (1 << (sortFieldBitSize + 1)) - 1. Это означает, что первый элемент
-	 * вставки будет равен 1 << sortFieldBitSize
-	 * Вы можете выбрать это число любым, но с учетом правила
+	 * @var int bit size sort fields divided by 2
+	 * This number is in the natural size is half of the supported range sort fields
+	 * from 1 to (1 << (sortFieldBitSize + 1)) - 1. This means that the first
+	 * insert element is equalto 1 << sortFieldBitSize
+	 * You can select any number of this, but with the rules
 	 * sortFieldBitSize > freeSortSpaceBitSize >= minLocalFreeSortSpaceBitSize > 1
 	 * 
-	 * Это настройка параметров алгоритма для конроля поля сортировки.
-	 * Помтите, правильные параметры настройки алгоритма напрямую влияют на производительность.
-	 * Eсли не знаете как это работает, не изменяйте это, большинству систем достаточно
-	 * настроек по умолчанию. Настройки по умолчанию полволяют контролировать
-	 * без потери производительности около 100500 записей =)
+	 * This setting algorithm parameters to control the sort field.
+	 * Remember, the correct settings of the algorithm directly affect performance.
+	 * IF YOU ARE do not know how it works, do not change this,
+	 * most systems is quite default settings. The default settings allow you
+	 * to control without sacrificing performance about 100500 entries and more =)
 	 * 
-	 * Стандартные настройки sortFieldBitSize/freeSortSpaceBitSize/minLocalFreeSortSpaceBitSize
+	 * Standard settings:
+	 * sortFieldBitSize/freeSortSpaceBitSize/minLocalFreeSortSpaceBitSize
+	 * 
 	 * on x86 php max is 30 (signed int).
 	 * 30/15/4
 	 * 
 	 * on x64 php max is 62 (signed bigint)
 	 * 62/31/6
 	 * 
-	 * @link https://github.com/wartur/yii-sorter-behavior/blob/master/ALGORITHM.md подробнее об алгоритме работы
+	 * @link https://github.com/wartur/yii-sorter-behavior/blob/master/ALGORITHM.md More details about the algorithm works
 	 */
 	public $sortFieldBitSize = 30;
 
 	/**
-	 * @var int размер свободного пространства между записями по умолчанию (в битах)
-	 * @link https://github.com/wartur/yii-sorter-behavior/blob/master/ALGORITHM.md подробнее об алгоритме работы
+	 * @var int the amount of space between entries by default (in bits)
+	 * @link https://github.com/wartur/yii-sorter-behavior/blob/master/ALGORITHM.md More details about the algorithm works
 	 * 
 	 * also see $sortFieldBitSize
 	 */
 	public $freeSortSpaceBitSize = 15;
 
 	/**
-	 * @var int минимальный размер свободного пространства между записями
+	 * @var int the minimum amount of space between entries
 	 * @link https://github.com/wartur/yii-sorter-behavior/blob/master/ALGORITHM.md подробнее об алгоритме работы
 	 * 
 	 * also see $sortFieldBitSize
@@ -156,26 +158,28 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public $minLocalFreeSortSpaceBitSize = 4;
 
 	/**
-	 * @var int размер пакета записей для обработки, используется для ускорения
-	 * работы базы данных. Чем это число больше, тем больше записей за раз
-	 * загружается из базы данных. Если размер пакета был равен 1, то считается
-	 * что пакетная обработка отключена
+	 * @var int packet size records for processing,
+	 * is used to speed up the database. More than this number,
+	 * the more records at a time is loaded from the database.
+	 * If the packet size is equal to 1,
+	 * it is assumed that the batch processing is disabled
 	 * 
 	 * See ALGORITHM.md
 	 */
 	public $packageSize = 200;
 
 	/**
-	 * Поменять местами текущую запись и запись указанную в $model
-	 * Своппирование происходит в 3 запроса записи, через переменную
+	 * Swap the current record and the record specified in the $ model.
+	 * Swapping occurs in 3 write request, the variable
 	 * 
-	 * В идеале, это можно сделать с помощью одного запроса своппирования в RDBM,
-	 * но некоторые базы данных (MySQL) не поддерживают запроса своппирования
+	 * Note:
+	 * Ideally, this can be done with a single query swapping in RDBM,
+	 * but some databases (MySQL) do not support the request svoppirovaniya
 	 * 
-	 * Данный метод позволяет справляться с повышенной деградацией при перестановки
-	 * 2-х соседних записей
+	 * This method makes it possible to cope with the increased degradation
+	 * under permutation of 2 adjacent records
 	 * 
-	 * @param CActiveRecord $model модель с поведением SorterActiveRecordBehavior
+	 * @param CActiveRecord $model behavioral model SorterActiveRecordBehavior
 	 */
 	public function sorterSwappWith(CActiveRecord $model) {
 		$sortOwner = $this->owner->{$this->sortField};
@@ -194,7 +198,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись на одну позицию вверх
+	 * Move the current entry up one position
 	 * It's alias of self::sorterMove(true)
 	 */
 	public function sorterMoveUp() {
@@ -202,7 +206,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись на одну позицию вниз
+	 * Move the current record down one position
 	 * It's alias of self::sorterMove(false)
 	 */
 	public function sorterMoveDown() {
@@ -210,10 +214,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись на одну позицию
-	 * Использует алгоритм своппирования. Деградации разряженного массива не происходит
-	 * @param boolean $up направление перемещения. true - вверх, false - вниз
-	 * @throws SorterOperationExeption для новой записи невозможно определить начальную позицию
+	 * Move the current record by one position. Uses an algorithm swapping.
+	 * Degradation discharged array does not occur.
+	 * @param boolean $up direction of travel. true - up, false - down
+	 * @throws SorterOperationExeption A new record is impossible to determine the starting position
 	 */
 	public function sorterMove($up) {
 		if ($this->owner->getIsNewRecord()) {
@@ -232,30 +236,30 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись на несколько позиций наверх
+	 * Move the current record for a few top positions
 	 * It's alias of sorterMoveNumber(true, $number)
 	 * 
-	 * @param int $number количество позиций на которую требуется передвинуть
+	 * @param int $number the number of positions to which you want to move
 	 */
 	public function sorterMoveNumberUp($number) {
 		$this->sorterMoveNumber(true, $number);
 	}
 
 	/**
-	 * Переместить текущую запись на несколько позиций вниз
+	 * Move the current record for a few down positions
 	 * It's alias of sorterMoveNumber(false, $number)
 	 * 
-	 * @param int $number количество позиций на которую требуется передвинуть
+	 * @param int $number the number of positions to which you want to move
 	 */
 	public function sorterMoveNumberDown($number) {
 		$this->sorterMoveNumber(false, $number);
 	}
 
 	/**
-	 * Переместить текущую запись на несколько позиций
-	 * @param boolean $up направление перемещения. true - наверх, false - вниз
-	 * @param int $number количество позиций перемещения
-	 * @throws SorterOperationExeption для новой записи невозможно определить начальную позицию
+	 * Move the current record at multiple positions
+	 * @param boolean $up direction of travel. true - upstairs, false - down
+	 * @param int $number number of positions move
+	 * @throws SorterOperationExeption A new record is impossible to determine the starting position
 	 */
 	public function sorterMoveNumber($up, $number) {
 		if ($this->owner->getIsNewRecord()) {
@@ -267,7 +271,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		} elseif ($number == 1) {
 			$this->sorterMove($up);
 		} elseif ($number > 1) {
-			// берем 2 записи из будущего окружения позиции
+			// take 2 entries from the environment of the future position
 			$condition = new CDbCriteria();
 			$condition->addCondition("t.{$this->sortField} " . ($up ? '<= :sort' : '>= :sort'));
 			$condition->order = "t.{$this->sortField} " . ($up ? 'DESC' : 'ASC');
@@ -278,64 +282,68 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			$upModels = $this->owner->model()->findAll($condition);
 
 			$count = count($upModels);
-			if ($count == 0) { // если не найдено записей, то это граница списка
+			if ($count == 0) { // If no records, it is the boundary list
 				$this->sorterMoveTo($up);
 			} elseif ($count == 1) {
-				// если найдена она запись, то это граница списка. Воспользуемся оптимизацией
+				// If we found one record, it is the border of the list. We use optimization
 				if ($up) {
 					$this->moveToBeginFast($upModels[0]->{$this->sortField});
 				} else {
 					$this->moveToEndFast($upModels[0]->{$this->sortField});
 				}
 			} elseif ($count == 2) {
-				// если найдено 2 записи, то это произвольное место в списке
+				// If we found 2 records, then an arbitrary position in the list
 				$this->moveBetween($upModels[0]->{$this->sortField}, $upModels[1]->{$this->sortField});
 			}
 		}
 	}
 
 	/**
-	 * Переместить текущую запись в начало списка
+	 * Move the current record in the top of the list
 	 * it's alias of sorterMoveTo(true, $onlySet)
 	 * 
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо нее будет использован метод moveToBeginFast/moveToEndFast
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToBegin($onlySet = false) {
 		$this->sorterMoveTo(true, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись в конец списка.
+	 * Move the current record in the end of the list
 	 * it's alias of sorterMoveTo(false, $onlySet)
 	 * 
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо нее будет использован метод moveToBeginFast/moveToEndFast
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToEnd($onlySet = false) {
 		$this->sorterMoveTo(false, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись на границу списка.
+	 * Move the current record on the border of the list.
 	 * 
-	 * @param boolean $begin направление перемещение, true - в начало, false в конец
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо нее будет использован метод moveToBeginFast/moveToEndFast
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param boolean $begin direction of movement, true - in the beginning, false to the end
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveTo($begin, $onlySet = false) {
 		$records = $this->owner->model()->findAll(array(
@@ -346,7 +354,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		if (empty($records)) {
 			$this->insertFirst($onlySet);
 		} elseif (isset($records[1]) && $records[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-			// при вставкеы новой записи этот код никогда не выполнится, так как getPrimaryKey == null
+			// vstavkey at a new record this code will never be executed because getPrimaryKey == null
 			if ($onlySet) {
 				if ($begin) {
 					$this->moveToBeginFast($records[0]->{$this->sortField}, $onlySet);
@@ -368,67 +376,70 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись перед указанной моделью.
+	 * Move the current record before the specified model.
 	 * it's alias of sorterMoveToModel(true, $pk, $onlySet)
 	 * 
-	 * @param int|CActiveRecord $pk модель или уникальный идентификатор записи
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param int|CActiveRecord $pk model or a unique identifier of a record
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToModelBefore($pk, $onlySet = false) {
 		$this->sorterMoveToModel(true, $pk, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись после указанной модели.
+	 * Move the current record after specified model
 	 * it's alias of sorterMoveToModel(false, $pk, $onlySet)
 	 * 
-	 * @param int|CActiveRecord $pk модель или уникальный идентификатор записи
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param int|CActiveRecord $pk model or a unique identifier of a record
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToModelAfter($pk, $onlySet = false) {
 		$this->sorterMoveToModel(false, $pk, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись перед|после указанной модели
+	 * Move the current record before|after specified model
 	 * 
-	 * @param boolean $before место для вставки, true - перед записью, false - после записи
-	 * @param int|CActiveRecord $pk модель или уникальный идентификатор записи
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
-	 * @throws SorterKeyNotFindExeption модель-позиция перемещения не найдена
+	 * @param boolean $before place to insert, true - before recording, false - after recording
+	 * @param int|CActiveRecord $pk model or a unique identifier of a record
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
+	 * @throws SorterKeyNotFindExeption Model-position movement is not found
 	 */
 	public function sorterMoveToModel($before, $pk, $onlySet = false) {
-		// оптимизация при внутреннем вызове метода
+		// optimization at an internal method call
 		if ($pk instanceof CActiveRecord) {
-			$movePlaceAfterModel = $pk; // не загружаем модель
+			$movePlaceAfterModel = $pk; // model download is not required
 
 			if ($this->owner->getPrimaryKey() == $movePlaceAfterModel->getPrimaryKey()) {
-				return null; // это та же запись, действий не требуется
+				return null; // this is the same record, action is required
 			}
 		} else {
 			if ($this->owner->getPrimaryKey() == $pk) {
-				return null; // это та же запись, действий не требуется
+				return null; // this is the same record, action is required
 			}
 
 			$movePlaceAfterModel = $this->owner->model()->findByPk($pk);
@@ -436,9 +447,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				throw new SorterKeyNotFindExeption(Yii::t('SorterActiveRecordBehavior', 'pk({pk}) not find in db', array('{pk}' => $pk)));
 			}
 		}
-			
-		if($onlySet) {
-			// загружаем модель на 2 позиции ниже модели перемещения
+
+		if ($onlySet) {
+			// load record 2 positions below the model move
 			$afterPlaceModels = $this->owner->model()->findAll(array(
 				'condition' => "t.{$this->sortField} " . ($before ? '< :sort' : '> :sort'),
 				'order' => "t.{$this->sortField} " . ($before ? 'DESC' : 'ASC'),
@@ -455,11 +466,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
 				}
 			} else {
-				// очень неоптимально!!!
+				// very suboptimally!!!
 				$this->moveBetween($afterPlaceModels[0]->{$this->sortField}, $movePlaceAfterModel->{$this->sortField}, $onlySet);
 			}
 		} else {
-			// загружаем модель на одну позицию выше модели перемещения
+			// load model one position above the model move
 			$beforeModel = $this->owner->model()->find(array(
 				'condition' => "t.{$this->sortField} " . ($before ? '> :sort' : '< :sort'),
 				'order' => "t.{$this->sortField} " . ($before ? 'ASC' : 'DESC'),
@@ -467,11 +478,11 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					'sort' => $movePlaceAfterModel->{$this->sortField}
 				)
 			));
-			
-			if(isset($beforeModel) && $beforeModel->getPrimaryKey() == $this->owner->getPrimaryKey()) {
+
+			if (isset($beforeModel) && $beforeModel->getPrimaryKey() == $this->owner->getPrimaryKey()) {
 				$this->sorterSwappWith($movePlaceAfterModel);
 			} else {
-				// загружаем модель на 2 позиции ниже модели перемещения
+				// load record 2 positions below the model move
 				$afterPlaceModels = $this->owner->model()->findAll(array(
 					'condition' => "t.{$this->sortField} " . ($before ? '< :sort' : '> :sort'),
 					'order' => "t.{$this->sortField} " . ($before ? 'DESC' : 'ASC'),
@@ -481,18 +492,18 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					)
 				));
 
-				if (empty($afterPlaceModels)) { // не найдено ни одной записи - это конец списка
+				if (empty($afterPlaceModels)) { // not found any record - it's the end of the list
 					if ($before) {
 						$this->moveToBeginFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
 					} else {
 						$this->moveToEndFast($movePlaceAfterModel->{$this->sortField}, $onlySet);
 					}
 				} elseif (isset($afterPlaceModels[0]) && $afterPlaceModels[0]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
-					// noop, мы уже тут
+					// noop, we have here
 				} elseif (isset($afterPlaceModels[1]) && $afterPlaceModels[1]->getPrimaryKey() == $this->owner->getPrimaryKey()) {
 					$this->sorterSwappWith($afterPlaceModels[0]);
 				} else {
-					// вставка в произвольное место
+					// inserting in an arbitrary position
 					$this->moveBetween($afterPlaceModels[0]->{$this->sortField}, $movePlaceAfterModel->{$this->sortField}, $onlySet);
 				}
 			}
@@ -500,52 +511,55 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить текущую запись перед указанной позицией в списке
+	 * Move the current record before the specified position in the list
 	 * 
-	 * @param int $position позиция для перемещения от начала списка
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param int $position position to move from the front of
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToPositionBefore($position, $onlySet = false) {
 		$this->sorterMoveToPosition(true, $position, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись после указанной позицией в списке
+	 * Move the current record after the specified position in the list
 	 * 
-	 * @param int $position позиция для перемещения от начала списка
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param int $position position to move from the front of
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToPositionAfter($position, $onlySet = false) {
 		$this->sorterMoveToPosition(false, $position, $onlySet);
 	}
 
 	/**
-	 * Переместить текущую запись перед|после указанной позиции в списке
+	 * Move the current record before|after the specified position in the list
 	 * 
-	 * @param boolean $before место для вставки, true - перед позицией, false - после позиции
-	 * @param int $position позиция для перемещения от начала списка
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД. Так же при использовании этого параметра не будет работать система
-	 * свопа позиций. Вместо свопа будут использованы методы moveToBeginFast/moveToEndFast,
-	 * а так же moveBetween - имеющий самый высокий деградационный эффект.
-	 * Данный метод c параметром $onlySet=true рекомендуется использовать только при вставке новых записей!
+	 * @param boolean $before place to insert, true - to the position, false - after position
+	 * @param int $position position to move from the front of
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made every
+	 * possible action to ensure that would allocate space
+	 * for inserting this value, including the normalization on the fly
+	 * and extreme normalization with all records in the database.
+	 * Also, if you use this option will not work the system swap positions.
+	 * Instead, the method will be used moveToBeginFast / moveToEndFast,
+	 * and move Between - having the highest effect of degradation.
+	 * This method with a parameter $ onlySet = true should only be used when inserting new records!
 	 */
 	public function sorterMoveToPosition($before, $position, $onlySet = false) {
 		if ($position <= ($before ? 1 : 0)) {
@@ -559,19 +573,19 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			if (empty($model)) {
 				$this->sorterMoveTo(false, $onlySet);
 			} else {
-				// находим позицию.
+				// find the position.
 				$this->sorterMoveToModel($before, $model, $onlySet);
 			}
 		}
 	}
 
 	/**
-	 * Порядок указанного списка записей. При смене порядка деградации
-	 * разряженного массива происходить не будет
+	 * The order of this list of entries.
+	 * If you change the order of degradation sparse array will not occur
 	 * 
-	 * @todo 1.1.0 будет имплементировано при имплементации jQuery виджета сортировки
+	 * @todo 1.1.0 will implement when implementing jQuery widget sorting
 	 * 
-	 * @param array $idsAfter массив идентификаторов моделей или массив моделей отсортированный в требуемом порядке
+	 * @param array $idsAfter Identifier array or an array of models are sorted in the order
 	 * @throws CException Not Implemented Exception
 	 */
 	public function sorterChangeIdsOrderTo(array $idsAfter) {
@@ -579,21 +593,21 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Инверсировать список. Инверсия происходит без деградации разряженного массива
-	 * с помощью операции вычитания текущих значений из максимума
+	 * Reverse list. Inversion occurs without degradation sparse array
+	 * using subtraction current values of the maximum
 	 * 
-	 * @todo 1.1.0 будет имплементировано при имплементации jQuery виджета сортировки
+	 * @todo 1.1.0 will implement when implementing jQuery widget sorting
 	 * 
 	 * @throws CException Not Implemented Exception
 	 */
 	public function sorterInverseAll() {
-		// берем 1<<30 и вычитаем из него текущее значение, получаем инверсию
+		// take 1 << 30 and subtracted from the current value, we obtain an inversion
 		//UPDATE ALL 1<<30 - $this->owner->{$this->sorterField};
 		throw new CException(Yii::t('SorterActiveRecordBehavior', 'Not Implemented Exception'));
 	}
 
 	/**
-	 * Регулярная нормализация разряженного массива
+	 * Regular normalization discharged array
 	 */
 	public function sorterNormalizeSortFieldRegular() {
 		$elementCount = $this->owner->model()->count();
@@ -610,8 +624,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Получение очередного значения для вставки новой записи
-	 * @return int очередное значение поле сортировки в зависимости от настроек модели
+	 * Obtaining the next value to insert a new record
+	 * @return int another sort field value depending on your model
 	 */
 	public function sorterSetNextInsertSortValue() {
 		$this->sorterMoveTo(!$this->defaultInsertToEnd, true);
@@ -620,19 +634,18 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Частичная нормализация для возможности вставки очередной записи
-	 * в конфликтное место списка
-	 * @param int $sortFieldA конфликтное значение 1
-	 * @param int $sortFieldB конфликтное значение 2 (обычно отличается на 1 от "значения 1")
-	 * @return int новое значение которое возможно вставить без конфликта
-	 * @throws SorterOperationExeption "значение 1" не может быть равно "значению 2"
+	 * Partial normalization to allow insertion of the next record in conflict roster spot
+	 * @param int $sortFieldA conflicting value 1
+	 * @param int $sortFieldB conflicting value 2 (typically differs by one from "value 1")
+	 * @return int the new value is possible to insert without conflict
+	 * @throws SorterOperationExeption "value 1" can not be equal to the "value 2"
 	 */
 	private function normalizeSortFieldOnthefly($sortFieldA, $sortFieldB) {
 		if ($sortFieldA == $sortFieldB) {
 			throw new SorterOperationExeption(Yii::t('SorterActiveRecordBehavior', 'normalizeSortFieldOnthefly :: $sortFieldA({sortFieldA}) and $sortFieldB({sortFieldB}) cant be equal', array('{sortFieldA}' => $sortFieldA, '{sortFieldB}' => $sortFieldB)));
 		}
 
-		// упорядочиваем A и B
+		// order the A and B
 		if ($sortFieldA < $sortFieldB) {
 			$upSortFieldValue = $sortFieldA;
 			$downSortFieldValue = $sortFieldB;
@@ -641,13 +654,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			$downSortFieldValue = $sortFieldA;
 		}
 
-		// ======= алгоритм поиска пространства для нормализации =======
-		$upDownCountCache = null;  // кеш количества записей от границы
-		$doubleSearchMultiplier = 1; // множитель просмотра пространства
-		$usingMin = $usingMax = false; // флаги сигнализирующие посмотр до конца нижнего или верннего списка
+		// ======= space search algorithm to normalize =======
+		$upDownCountCache = null; // Cache number of records from the border
+		$doubleSearchMultiplier = 1; // factor viewing space
+		$usingMin = $usingMax = false; // flags signaling that he was to see the end of the lower or upper limit of the list
 		do {
-			// запрос выше по списку
-			if ($usingMin === false) { // если мы достигли границы далее искать не требуется
+			// request higher on the list
+			if ($usingMin === false) { // if we reached the border continue to seek not required
 				$beforeSortFieldValue = $this->owner->dbConnection->createCommand()
 						->select($this->sortField)
 						->from($this->owner->tableName())
@@ -661,8 +674,8 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 				}
 			}
 
-			// запрос ниже по списку
-			if ($usingMax === false) { // если мы достигли границы далее искать не требуется
+			// request the list below
+			if ($usingMax === false) { // if we reached the border continue to seek not required
 				$afterSortFieldValue = $this->owner->dbConnection->createCommand()
 						->select($this->sortField)
 						->from($this->owner->tableName())
@@ -677,10 +690,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			}
 
 			if ($usingMin && $usingMax) {
-				// полная нормализация - частный случай регулярной нормализации
+				// full normalization - a special case of regular normalization
 				$elementCount = $this->owner->model()->count();
 			} elseif ($usingMin && !$usingMax) {
-				// начало списка
+				// top of the list
 				if ($upDownCountCache === null) {
 					$upDownCountCache = $this->owner->model()->count(array(
 						'condition' => "t.{$this->sortField} <= :upSortFieldValue",
@@ -688,10 +701,10 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					));
 				}
 
-				// -1 означает, что мы не считаем пограничную запись
+				// -1 Means that we do not consider the border record
 				$elementCount = $upDownCountCache + $this->freeSortSpaceBitSize * $doubleSearchMultiplier - 1;
 			} elseif (!$usingMin && $usingMax) {
-				// конец списка
+				// end of list
 				if ($upDownCountCache === null) {
 					$upDownCountCache = $this->owner->model()->count(array(
 						'condition' => "t.{$this->sortField} >= :downSortFieldValue",
@@ -699,73 +712,73 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					));
 				}
 
-				// -1 означает, что мы не считаем пограничную запись
+				// -1 Means that we do not consider the border record
 				$elementCount = $upDownCountCache + $this->freeSortSpaceBitSize * $doubleSearchMultiplier - 1;
 			} else {
-				// стандартный поиск пространства
-				$elementCount = $this->freeSortSpaceBitSize * 2 * $doubleSearchMultiplier - 2; // -2 пограничных
+				// standard search space
+				$elementCount = $this->freeSortSpaceBitSize * 2 * $doubleSearchMultiplier - 2; // -2 bordered
 			}
 
-			// если текущая запись новая или она не включена в найденный диапазон, то добавить к количеству
+			// if the current record is new or it is not included in the specified range, then add it to the current number
 			if ($this->owner->isNewRecord || !($beforeSortFieldValue < $this->owner->{$this->sortField} && $this->owner->{$this->sortField} < $afterSortFieldValue)) {
 				++$elementCount;
 			}
 
-			// произвести поиск ЛМР
+			// search for local discharge of the array (ЛМР*)
 			if ($usingMin && $usingMax) {
 				$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount);
 			} else {
 				$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByDiff($this->freeSortSpaceBitSize, $this->minLocalFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue);
 			}
 
-			// если пространства не найдено, удваиваем ширину просмотра
+			// if space is not found, double the width of the view
 			if ($newFreeSortSpaceBitSizeNatural === null) {
 				if ($doubleSearchMultiplier == PHP_INT_MAX) { // конец разрядности PHP
 					break;
 				}
 
-				// если мы достигли предела точности числа, выжнем из целого числа все (+1)
+				// if we have reached the limit of accuracy, squeeze out all the integer (1)
 				$doubleSearchMultiplier = $doubleSearchMultiplier == (PHP_INT_MAX >> 1) + 1 ? PHP_INT_MAX : $doubleSearchMultiplier << 1;
 			}
 
-			// пока не найден новая ЛМР или не просмотрена вся таблица
+			// has not yet found a new discharge of the array (ЛМР*) or viewed by the entire table
 		} while ($newFreeSortSpaceBitSizeNatural === null && !($usingMin && $usingMax));
 
-		// не найдено новой ЛМР после просмотра всей таблицы
+		// found new discharge of the array (ЛМР*) after watching the entire table
 		if ($newFreeSortSpaceBitSizeNatural === null) {
-			if (!($usingMin && $usingMax)) { // если по каким-то причинам не найдено границы, то явно запросим из БД
-				$elementCount = $this->owner->model()->count() + 1;  // +1 новый
+			if (!($usingMin && $usingMax)) { // If for some reason found the border, it is clearly a query from the database
+				$elementCount = $this->owner->model()->count() + 1;  // +1 new
 			}
 
 			return $this->normalizeSortFieldExtreme($elementCount, $upSortFieldValue);
 		} else {
-			// ======= поиск первого значения с которого производить вставку при нормализации =======
+			// ======= search a first value being used to insert in the normalization =======
 			if ($usingMin && !$usingMax) {
-				// это элемент смещения сверху
+				// is offset from the top element
 				$startSortValue = $afterSortFieldValue - $newFreeSortSpaceBitSizeNatural * $elementCount;
 			} elseif (!$usingMin && $usingMax) {
-				// это элемент смещения снизу
+				// a biasing member below it
 				$startSortValue = $beforeSortFieldValue + $newFreeSortSpaceBitSizeNatural;
 			} else {
-				// это центрально-взвешенный элемент
+				// this center-weighted element
 				$startSortValue = $this->centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue);
 			}
 
-			// ======= распределяем пространство =======
+			// ======= distribute space =======
 			return $this->distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, $beforeSortFieldValue, $afterSortFieldValue, $upSortFieldValue);
 		}
 	}
 
 	/**
-	 * Универсальный алгоритм распределения записей в разряженном массиве
+	 * Universal distribution algorithm records in sparse array
 	 * 
-	 * @param int $newFreeSortSpaceBitSizeNatural пространство между записями в списке
-	 * @param int $startSortValue стартовое значение
-	 * @param int $beforeSortFieldValue верхняя граница распределения
-	 * @param int $afterSortFieldValue нижняя граница распределения
-	 * @param int $upSortFieldValue верхняя конфликтная запись (используется для определения нового значения вставки кофликтной записи)
-	 * @return int новое значение которое возможно вставить без конфликта
-	 * @throws SorterSaveErrorExeption неудачное сохранение модели по каким-либо причинам
+	 * @param int $newFreeSortSpaceBitSizeNatural space between entries in the list
+	 * @param int $startSortValue starting value
+	 * @param int $beforeSortFieldValue the upper limit of the distribution
+	 * @param int $afterSortFieldValue the lower limit of the distribution
+	 * @param int $upSortFieldValue Top conflict record (used to determine the new value of the insertion of the conflict entries)
+	 * @return int the new value is possible to insert without conflict
+	 * @throws SorterSaveErrorExeption unsuccessful preservation model for any reason
 	 */
 	private function distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, $beforeSortFieldValue, $afterSortFieldValue, $upSortFieldValue = null) {
 		$afterSortFieldValueExtend = $afterSortFieldValue == $this->mathMaxSortField() ? PHP_INT_MAX : $afterSortFieldValue;
@@ -779,7 +792,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			)
 		));
 
-		// произвести стандартное вычисление элемента вставки after. DESC так как мы сделал негатив!!!
+		// produce standard computation element insertion after. DESC since we did negative !!!
 		$condition = new CDbCriteria();
 		$condition->addCondition(":newFromSearch < t.{$this->sortField} AND t.{$this->sortField} < :maxSortField");
 		$condition->order = "t.{$this->sortField} DESC";
@@ -789,7 +802,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 			'maxSortField' => -$beforeSortFieldValue
 		);
 
-		// если вставка в начало, то оставляем место
+		// if the insert to the top, then leave the place
 		$currentSortNatural = $startSortValue;
 		if ($beforeSortFieldValue === 0 && isset($upSortFieldValue) && $upSortFieldValue == 0) {
 			$result = $currentSortNatural;
@@ -799,13 +812,13 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 		}
 
 		do {
-			// пакетная обработка по $this->packageSize записей за раз
+			// Batch processing on $this->packageSize records at a time
 			$models = $this->owner->model()->findAll($condition);
 
 			$newFromSearch = null;
 
-			if (isset($upSortFieldValue)) { // статически развернем код
-				// здесь усложненное вычисление, но обычно их количество меньше
+			if (isset($upSortFieldValue)) { // statically deploy code
+				// Complicated calculation here, but they are usually smaller than the number of
 				foreach ($models as $entry) {
 					$newFromSearch = $entry->{$this->sortField};
 
@@ -817,7 +830,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 						}
 
 						$currentSortNatural += $newFreeSortSpaceBitSizeNatural;
-						// если мы видим кофликтную запись, оставляе для нее место и сохраняем значение для результата
+						// if we see a conflicting account, reserve a place for it and stores the value for the result
 						if ($upSortFieldValue == -$newFromSearch) {
 							$result = $currentSortNatural;
 							$currentSortNatural += $newFreeSortSpaceBitSizeNatural;
@@ -825,7 +838,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 					}
 				}
 			} else {
-				// здесь упрощенное вычисление, но их количество больше
+				// Simplified calculation here, but there's more
 				foreach ($models as $entry) {
 					$entry->{$this->sortField} = $currentSortNatural;
 					if (!$entry->save()) {
@@ -843,18 +856,20 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Экстремальная нормализация пространства
-	 * Является самой длительной операцией
+	 * Extreme normalization space
+	 * Is the most time-consuming operation
+	 * When properly configured system this situation should never occur.
+	 * The system usually starts to swear in the log long before starting use this method
 	 * 
-	 * @param int $elementCount количество записей для распределения
-	 * @param int $upSortFieldValue верхняя конфликтная запись (используется для определения нового значения вставки кофликтной записи)
-	 * @return int новое значение которое возможно вставить без конфликта
-	 * @throws SorterOutOfFreeSortSpaceExeption предел заполнения, более невозможно перераспределить пространство
+	 * @param int $elementCount the number of records for distribution
+	 * @param int $upSortFieldValue Top conflict record (used to determine the new value of the insertion of the conflict entries)
+	 * @return int the new value is possible to insert without conflict
+	 * @throws SorterOutOfFreeSortSpaceExeption limit filling is no longer possible to reallocate space
 	 */
 	private function normalizeSortFieldExtreme($elementCount, $upSortFieldValue = null) {
 		Yii::log(Yii::t('SorterActiveRecordBehavior', 'Extreme normalisation situation. Check table({table})', array('{table}' => $this->owner->tableName())), CLogger::LEVEL_WARNING);
 
-		// поиск локальной разряженности, при эстримальном распределении мы ищем вплоть до 0 (полной деградации)
+		// local search of discharge, at the extreme distribution we are looking up to 0 (complete degradation)
 		$newFreeSortSpaceBitSizeNatural = $this->findNewFreeSortSpaceBitSizeByCount($this->freeSortSpaceBitSize, 0, $elementCount);
 
 		if ($newFreeSortSpaceBitSizeNatural === null) { // fulled degradation
@@ -863,31 +878,30 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 
 		$maxSortField = $this->mathMaxSortField();
 
-		// это центрально-взвешенный элемент
+		// this center-weighted element
 		$startSortValue = $this->centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, 0, $maxSortField);
 
 		return $this->distributeNewFreeSortSpaceBitSize($newFreeSortSpaceBitSizeNatural, $startSortValue, 0, $maxSortField, $upSortFieldValue);
 	}
 
 	/**
-	 * Быстрое перемещение записи в начало списка без дополнительных проверок
-	 * @param int $min достоверно определенное минимальное значение в списке
-	 * Важно! это должно быть именно начальное значение списка, которое эквивалентно
-	 * запросу SELECT MIN(sort). Люболе другое значение может привести к непредсказуемым
-	 * результатом работы метода.
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД.
-	 * @throws SorterSaveErrorExeption неудачное сохранение модели по каким-либо причинам
+	 * Quickly move to the top of the list of entries without further checks
+	 * @param int $min reliable determination of the minimum value in the list
+	 * Important! it should be exactly the initial value of the list, which is
+	 * equivalent to request SELECT MIN(sort).
+	 * Any other value may lead to unpredictable results of the method.
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made all possible steps
+	 * to ensure that would allocate space for inserting this value, including
+	 * the normalization on the fly and extreme normalization with all records in the database.
+	 * @throws SorterSaveErrorExeption unsuccessful preservation model for any reason
 	 */
 	private function moveToBeginFast($min, $onlySet = false) {
 		$beginSortValue = $min - (1 << $this->freeSortSpaceBitSize);
 
-		// проверка конца разряженного пространства
+		// check the end of the discharged space
 		if ($beginSortValue <= 0) {
-			// Мы находимся у конца списка. Эта ситуация может быть предвестником экстремальной нормализации
+			// We are at the end of the list. This situation may be a harbinger of extreme normalization
 			Yii::log(Yii::t('SorterActiveRecordBehavior', 'PreExtreme situation. Check the table({table})', array('{table}' => $this->owner->tableName())), CLogger::LEVEL_WARNING);
 
 			$this->moveBetween(0, $min, $onlySet);
@@ -903,24 +917,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Быстрое перемещение записи в конец списка без дополнительных проверок
-	 * @param int $max достоверно определенное максимальное значение в списке
-	 * Важно! это должно быть именно конечное значение списка, которое эквивалентно
-	 * запросу SELECT MAX(sort). Люболе другое значение может привести к непредсказуемым
-	 * результатом работы метода.
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД.
-	 * @throws SorterSaveErrorExeption неудачное сохранение модели по каким-либо причинам
+	 * The rapid movement of the recording to the end of the list without further checks
+	 * @param int $min reliable determination of the minimum value in the list
+	 * Important! it should be exactly the initial value of the list, which is
+	 * equivalent to request SELECT MAX(sort).
+	 * Any other value may lead to unpredictable results of the method.
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made all possible steps
+	 * to ensure that would allocate space for inserting this value, including
+	 * the normalization on the fly and extreme normalization with all records in the database.
+	 * @throws SorterSaveErrorExeption unsuccessful preservation model for any reason
 	 */
 	private function moveToEndFast($max, $onlySet = false) {
 		$freeSortSpaceBitSizeNatural = 1 << $this->freeSortSpaceBitSize;
 		$maxSortValue = $this->mathMaxSortField();
 
 		if ($maxSortValue - $max <= $freeSortSpaceBitSizeNatural) {
-			// Мы находимся у конца списка. Эта ситуация может быть предвестником экстремальной нормализации
+			// We are at the end of the list. This situation may be a harbinger of extreme normalization
 			Yii::log(Yii::t('SorterActiveRecordBehavior', 'Preview Extreem situation. Check the table ({table})', array('{table}' => $this->owner->tableName())), CLogger::LEVEL_WARNING);
 
 			$this->moveBetween($max, $maxSortValue, $onlySet);
@@ -936,21 +949,20 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Переместить запись между указанными значениями. Параметры "знечение 1" и "значение 2"
-	 * ДОЛЖНЫ быть идущие одни за другим в любой последовательности. Передача
-	 * значений которые идут непоследовательно может повлеч к непредсказуемым результатам
-	 * @param int $betweenA значение 1
-	 * @param int $betweenB значение 2 (идущая следующая/пред "записью 1")
-	 * @param boolean $onlySet только установить значение, не сохранять в БД
-	 * Важно! независимо от параметра $onlySet будут произведены всевозможные
-	 * действия для того, что бы выделить пространство для вставки этого значения,
-	 * включая нормализацию на лету и экстремальную нормализацию со всеми записями
-	 * в БД.
-	 * @throws SorterSaveErrorExeption неудачное сохранение модели по каким-либо причинам
+	 * Move entry between these values. Options "value 1" and "value 2"
+	 * MUST be running one after the other in any sequence.
+	 * Transfer values that are inconsistent may lead to unpredictable results
+	 * @param int $betweenA record 1
+	 * @param int $betweenB record 2 (running next/prev "record 1")
+	 * @param boolean $onlySet only set, not stored in the database
+	 * Important! regardless of the parameter $onlySet will be made all possible steps
+	 * to ensure that would allocate space for inserting this value, including
+	 * the normalization on the fly and extreme normalization with all records in the database.
+	 * @throws SorterSaveErrorExeption unsuccessful preservation model for any reason
 	 */
 	private function moveBetween($betweenA, $betweenB, $onlySet = false) {
 
-		// higher boolean magic to preserve accuracy =) (подсчет среднего арифметического)
+		// higher boolean magic to preserve accuracy =) (calculation of the arithmetic mean)
 		$middle = ($betweenA >> 1) + ($betweenB >> 1) + ($betweenA & $betweenB & 1);
 		if ($middle == $betweenA || $middle == $betweenB) {
 			$this->owner->{$this->sortField} = $this->normalizeSortFieldOnthefly($betweenA, $betweenB);
@@ -966,9 +978,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Вставить первуз запись в базу данных. Первая запись равна половиной диапазона значений поля сортировки
-	 * @param type $onlySet только установить значение, не сохранять в БД
-	 * @throws SorterSaveErrorExeption неудачное сохранение модели по каким-либо причинам
+	 * Insert the first record in the database. The first entry is equal to half of the range of values of sort fields
+	 * @param type $onlySet only set, not stored in the database
+	 * @throws SorterSaveErrorExeption unsuccessful preservation model for any reason
 	 */
 	private function insertFirst($onlySet) {
 		$this->owner->{$this->sortField} = 1 << ($this->sortFieldBitSize); // divide to 2. Take center of int
@@ -981,9 +993,9 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Математический подсчет максимального значения поля сортировки
-	 * с сохранением точности типа int
-	 * @return int максимальное значение поля сортировки
+	 * Mathematical calculation maximum field
+	 * sorting maintaining the accuracy of type int
+	 * @return int the maximum value of the sort
 	 */
 	private function mathMaxSortField() {
 		$sortFieldBitSizeNatural = 1 << $this->sortFieldBitSize;
@@ -991,23 +1003,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Получение имени первичного ключа
-	 * @return string|array строка поля первичного ключа либо массив составного ключа
+	 * Getting the name of the primary key
+	 * @return string|array line primary key field or an array of composite key
 	 */
 	private function primaryKeyName() {
 		return $this->owner->getMetaData()->tableSchema->primaryKey;
 	}
 
 	/**
-	 * Поиск новой мощьности разряженности по всему диапазону записей
-	 * Оптимизированый метод специально для полной (регулярной/экстримальной) нормализации
-	 * @param int $currentFreeSortSpaceBitSize текущая ЛМР в битовом представлении
-	 * @param int $minFreeSortSpaceBitSize минимальная допустимая ЛМР в битовом представлении
-	 * @param int $elementCount количество записей в таблице
-	 * @return int|null значение найденой ЛМР допустимой для работы в указанных условиях, либо null если не найдено
+	 * Search for new discharge of the array (ЛМР*) at the range of records
+	 * Optimized specifically for the full method (regular/extreme) normalization
+	 * @param int $currentFreeSortSpaceBitSize current discharge of the array (ЛМР*) in binary representation
+	 * @param int $minFreeSortSpaceBitSize the minimum allowable discharge of the array (ЛМР*) in binary representation
+	 * @param int $elementCount the number of entries in the table
+	 * @return int|null value found discharge of the array (ЛМР*) allowed to work under these conditions, or null if not found
 	 */
 	private function findNewFreeSortSpaceBitSizeByCount($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount) {
-		// поиск: алгоритм битовой разницы
+		// search algorithm is a bit difference
 		$findBitSpaceSize = null;
 		if ($elementCount < $this->mathMaxSortField()) {
 			for ($bitSpaceSize = $currentFreeSortSpaceBitSize; $bitSpaceSize >= $minFreeSortSpaceBitSize; --$bitSpaceSize) { // от большего шага к меньшему
@@ -1025,30 +1037,30 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Поиск новой мощьности разряженности по указанному диапазону записей
-	 * Метод используется в нормализации на лету
+	 * Search for new discharge of the array (ЛМР*) for the specified range of records
+	 * The method is used for normalization on the fly
 	 * 
-	 * @param int $currentFreeSortSpaceBitSize текущая ЛМР в битовом представлении
-	 * @param int $minFreeSortSpaceBitSize минимальная допустимая ЛМР в битовом представлении
-	 * @param int $elementCount количество записей в указанном диапазоне
-	 * @param int $beforeSortFieldValue верхняя граница в списке
-	 * @param int $afterSortFieldValue нижняя граница в списке
-	 * @return int|null значение найденой ЛМР допустимой для работы в указанных условиях, либо null если не найдено
+	 * @param int $currentFreeSortSpaceBitSize current discharge of the array (ЛМР*) in binary representation
+	 * @param int $minFreeSortSpaceBitSize the minimum allowable discharge of the array (ЛМР*) in binary representation
+	 * @param int $elementCount the number of entries in the table
+	 * @param int $beforeSortFieldValue the upper limit on the list
+	 * @param int $afterSortFieldValue lower limit on the list
+	 * @return int|null value found discharge of the array (ЛМР*) allowed to work under these conditions, or null if not found
 	 */
 	private function findNewFreeSortSpaceBitSizeByDiff($currentFreeSortSpaceBitSize, $minFreeSortSpaceBitSize, $elementCount, $beforeSortFieldValue, $afterSortFieldValue) {
 		$currentDiff = $afterSortFieldValue - $beforeSortFieldValue;
 
-		// поиск: алгоритм сравнений натуральных расстояний
+		// search algorithm for comparing natural distances
 		$newFreeSortSpaceBitSizeNatural = null;
 		for ($bitSpaceSize = $currentFreeSortSpaceBitSize; $bitSpaceSize >= $minFreeSortSpaceBitSize; --$bitSpaceSize) { // от большего шага к меньшему
 			$naturalSpaceSize = 1 << $bitSpaceSize;
 
 			$localDiff = $elementCount * $naturalSpaceSize;
-			if (!is_int($localDiff)) { // контроль точности, не производим рассчет
+			if (!is_int($localDiff)) { // accuracy control, does not compute
 				continue;
 			}
 
-			// если места хватило
+			// if space enough
 			if ($localDiff + $naturalSpaceSize <= $currentDiff) {
 				$newFreeSortSpaceBitSizeNatural = $naturalSpaceSize;
 				break;
@@ -1059,23 +1071,23 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Поиск центрально-взвешенного значения первой записи. От этого значения
-	 * далее происходит распределение других записей по очередности которая была ранее
-	 * @param int $elementCount количество записей в указанном диапазоне
-	 * @param int $newFreeSortSpaceBitSizeNatural новая ЛМР в натуральном представлении
-	 * @param int $beforeSortFieldValue верхняя граница в списке
-	 * @param int $afterSortFieldValue нижняя граница в списке
-	 * @return int значение первой записи для дальнейшего распределения
+	 * Search center-weighted value of the first record.Further, from this value
+	 * is the distribution of other entries with the claims that have been previously
+	 * @param int $elementCount the number of records in the specified range
+	 * @param int $newFreeSortSpaceBitSizeNatural new discharge of the array (ЛМР*) in decimal
+	 * @param int $beforeSortFieldValue the upper limit on the list
+	 * @param int $afterSortFieldValue lower limit on the list
+	 * @return int the value of the first record for further distribution
 	 */
 	private function centralWeightFirstElement($elementCount, $newFreeSortSpaceBitSizeNatural, $beforeSortFieldValue, $afterSortFieldValue) {
 		if ($beforeSortFieldValue == 0 && $afterSortFieldValue == $this->mathMaxSortField()) {
-			// центрально взвешенный при реглуярной/экстремальной нормализации
+			// center weighted with regular/extreme normalization
 			$halfCount = $elementCount >> 1;
 			$firstElementOffset = $newFreeSortSpaceBitSizeNatural * $halfCount;
 			$middle = 1 << $this->sortFieldBitSize;
 			return $middle - $firstElementOffset;
 		} else {
-			// центрально взвешенный при нормализации на лету
+			// center weighted with the normalization on the fly
 			$currentDiff = $afterSortFieldValue - $beforeSortFieldValue;
 			$elementSpace = $newFreeSortSpaceBitSizeNatural * $elementCount;
 			$firstElementOffset = $currentDiff - $elementSpace;
@@ -1096,36 +1108,36 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Валидация правильности настройки бихевиора
+	 * Validation of the setting is correct behavior
 	 * @param CEvent $event
 	 */
 	public function afterConstruct($event) {
 		parent::afterConstruct($event);
 
-		// Только в режиме отладки. На продакшене это бессмысленная трата электичества
+		// Only in debug mode. On prodakshene is a waste of electricity
 		if (YII_DEBUG) {
 			if (PHP_INT_SIZE == 4 && $this->sortFieldBitSize > 30) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Указанное битное смещение превышает возможности 32 битной арихтектуры'));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'The specified bit offset exceeds the capabilities of 32-bit architecture'));
 			}
 
 			if (PHP_INT_SIZE == 8 && $this->sortFieldBitSize > 62) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Указанное битное смещение превышает возможности 64 битной арихтектуры'));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'The specified bit offset exceeds the capabilities of 64-bit architecture'));
 			}
 
 			if ($this->sortFieldBitSize < 2) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Разрядность sortFieldBitSize({sortFieldBitSize}) должна быть больше или рвно 3', array('{sortFieldBitSize}' => $this->sortFieldBitSize)));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Bit depth sortFieldBitSize({sortFieldBitSize}) must be greater than or equal to 3', array('{sortFieldBitSize}' => $this->sortFieldBitSize)));
 			}
 
 			if ($this->freeSortSpaceBitSize < 1 || $this->freeSortSpaceBitSize >= $this->sortFieldBitSize) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Неверная настройка поля freeSortSpaceBitSize({freeSortSpaceBitSize}), должно быть больше ноля и меньше sortFieldBitSize({sortFieldBitSize})', array('{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize, '{sortFieldBitSize}' => $this->sortFieldBitSize)));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Incorrect setting of the field freeSortSpaceBitSize({freeSortSpaceBitSize}), must be greater than zero and less sortFieldBitSize({sortFieldBitSize})', array('{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize, '{sortFieldBitSize}' => $this->sortFieldBitSize)));
 			}
 
 			if ($this->minLocalFreeSortSpaceBitSize < 1 || $this->minLocalFreeSortSpaceBitSize > $this->freeSortSpaceBitSize) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Неверная настройка поля minLocalFreeSortSpaceBitSize({minLocalFreeSortSpaceBitSize}), должно быть больше ноля и меньше или равно freeSortSpaceBitSize({freeSortSpaceBitSize})', array('{minLocalFreeSortSpaceBitSize}' => $this->minLocalFreeSortSpaceBitSize, '{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize)));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Incorrect setting of the field minLocalFreeSortSpaceBitSize({minLocalFreeSortSpaceBitSize}), must be greater than zero and less than or equal to freeSortSpaceBitSize({freeSortSpaceBitSize})', array('{minLocalFreeSortSpaceBitSize}' => $this->minLocalFreeSortSpaceBitSize, '{freeSortSpaceBitSize}' => $this->freeSortSpaceBitSize)));
 			}
 
 			if (!is_string($this->primaryKeyName())) {
-				throw new CException(Yii::t('SorterActiveRecordBehavior', 'Библиотека не умеет работать составным первичным ключем'));
+				throw new CException(Yii::t('SorterActiveRecordBehavior', 'The library does not know how to work a composite primary key'));
 			}
 		}
 	}

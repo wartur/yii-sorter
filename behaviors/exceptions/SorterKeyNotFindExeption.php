@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Exception throwing if model gived in params nod find
+ * Throws if the model is used as a parameter is not found
  */
 class SorterKeyNotFindExeption extends CException {
 	

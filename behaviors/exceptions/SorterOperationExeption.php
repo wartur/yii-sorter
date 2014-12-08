@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Exception throwing sorter operation can't to be execute
+ * Throws if the sorting operation can not be performed
  */
 class SorterOperationExeption extends CException {
 	

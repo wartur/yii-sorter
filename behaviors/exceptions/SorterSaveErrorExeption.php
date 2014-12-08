@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Exception throwing if working model not save
+ * Throws if the model could not be saved for some reason
  */
 class SorterSaveErrorExeption extends CException {
 	
