@@ -55,7 +55,9 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 Подключение расширения к проекту
 --------------------------------
 1) [Скачайте новейший релиз](https://github.com/wartur/yii-sorter/releases)
+
 2) Распакуйте yii-sorter в директории ext.wartur.yii-sorter
+
 3) Добавьте новый алиас пути в начало конфигурационного файла (по умолчанию: config/main.php)
 ```php
 Yii::setPathOfAlias('sorter', 'protected/extensions/wartur/yii-sorter');
