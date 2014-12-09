@@ -1,4 +1,4 @@
-YII-SORTER
+YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/README.md))
 ==========
 
 Расширение для Yii для работы с упорядоченным списком управляемым пользователем
