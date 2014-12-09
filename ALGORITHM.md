@@ -1,3 +1,1 @@
 ### ALGORITHM
-
-link to habrahabr

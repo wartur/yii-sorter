@@ -1,4 +1,3 @@
-yii-sorter-behavior
+yii-sorter
 ===================
 
-init readme
