@@ -54,16 +54,16 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 
 Подключение расширения к проекту
 --------------------------------
-1) [Скачайте новейший релиз](https://github.com/wartur/yii-sorter/releases)
+1. [Скачайте новейший релиз](https://github.com/wartur/yii-sorter/releases)
 
-2) Распакуйте yii-sorter в директории ext.wartur.yii-sorter
+2. Распакуйте yii-sorter в директории ext.wartur.yii-sorter
 
-3) Добавьте новый алиас пути в начало конфигурационного файла (по умолчанию: config/main.php)
+3. Добавьте новый алиас пути в начало конфигурационного файла (по умолчанию: config/main.php)
 ```php
 Yii::setPathOfAlias('sorter', 'protected/extensions/wartur/yii-sorter');
 ```
 
-4) Добавьте новый компонент приложения в конфигурационный файл.
+4. Добавьте новый компонент приложения в конфигурационный файл.
 Пример минимальной конфигурации:
 ```php
 'components'=>array(
@@ -74,7 +74,7 @@ Yii::setPathOfAlias('sorter', 'protected/extensions/wartur/yii-sorter');
 )
 ```
 
-5) Добавьте поведение в модель в которой требуется использовать упорядоченый список
+5. Добавьте поведение в модель в которой требуется использовать упорядоченый список
 Пример минимальной конфигурации:
 ```php
 public function behaviors() {
@@ -86,7 +86,7 @@ public function behaviors() {
 }
 ```
 
-6) Проверьте, что ваша модель удовлетворяет схеме, указанной в [sorter.tests.env.schema](https://github.com/wartur/yii-sorter/blob/master/tests/env/schema/sortest.sql).
+6. Проверьте, что ваша модель удовлетворяет схеме, указанной в [sorter.tests.env.schema](https://github.com/wartur/yii-sorter/blob/master/tests/env/schema/sortest.sql).
 Помните для работы поведения требуется поле SIGNED INT sort с УНИКАЛЬНЫМ ключом. Подробнее
 вы можете прочитать в [API reference поведения](https://github.com/wartur/yii-sorter/blob/master/behaviors/SorterActiveRecordBehavior.php)
 
@@ -97,7 +97,7 @@ public function behaviors() {
 сделает поведение. Вам не нужно знать, как оно сработает на низком уровне, важно
 понимать, что оно сработает очень быстро и правильно.
 
-1) Добавьте к таблице CGridView колонку для общего управления порядком.
+1. Добавьте к таблице CGridView колонку для общего управления порядком.
 В примере показана минимальная конфигурация:
 ```php
 <?php
@@ -113,7 +113,7 @@ $this->widget('zii.widgets.grid.CGridView', array(
 ?>
 ```
 
-2) Добавьте к таблице колонку для перемещения текущей строки перед определенной позицией
+2. Добавьте к таблице колонку для перемещения текущей строки перед определенной позицией
 В примере показана минимальная конфигурация:
 ```php
 <?php
@@ -129,7 +129,7 @@ $this->widget('zii.widgets.grid.CGridView', array(
 ?>
 ```
 
-3) Для работы виджетов с контроллером, вам требуется добавить в контроллер
+3. Для работы виджетов с контроллером, вам требуется добавить в контроллер
 действия и поведение. Поведение обеспечивает связь контроллера с моделью.
 Полный набо действий являются полной имплиментацией API поведения
 ```php
@@ -153,7 +153,7 @@ public function behaviors() {
 }
 ```
 
-4) Подробнее об этих виджетах вы можете прочитать в API reference
+4. Подробнее об этих виджетах вы можете прочитать в API reference
 в директории [sorter.widgets](https://github.com/wartur/yii-sorter/tree/master/widgets),
 у них есть дополнительные параметры настройки
 
