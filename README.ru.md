@@ -2,6 +2,7 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 ==========
 
 Расширение для Yii для работы с упорядоченным списком управляемым пользователем
+
 ДЕМО: http://yii-sorter.wartur.ru
 
 ###### От автора
