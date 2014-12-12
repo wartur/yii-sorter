@@ -45,8 +45,8 @@ The algorithm is tested with the default settings. It has been tested in
 some extreme conditions and settings other than the default settings.
 Code coverage of more than 98% (actually 92% - 6% do not cover non-critical
 section of code that is required only when the project development
-and helps the developer). For data integrity, do not worry IN COMPLIANCE
-work through transaction / lock or using this extension action.
+and helps the developer). If you are using transactions or lock tables,
+you can do not worry about data integrity.
 
 IMPORTANT: all operations using this extension shall be made through the
 transaction (ISOLATION LEVEL SERIALIZABLE) / lock. Otherwise, there is a
