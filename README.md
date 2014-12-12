@@ -56,15 +56,15 @@ Connecting to the expansion project
 -----------------------------------
 1) [Download the latest release](https://github.com/wartur/yii-sorter/releases)
 
-2) Распакуйте yii-sorter в директории ext.wartur.yii-sorter
+2) Unpack yii-sorter in the directory ext.wartur.yii-sorter
 
-3) Добавьте новый алиас пути в начало конфигурационного файла (по умолчанию: config/main.php)
+3) Add a new alias path to the top of the configuration file (default: config / main.php)
 ```php
 Yii::setPathOfAlias('sorter', 'protected/extensions/wartur/yii-sorter');
 ```
 
-4) Добавьте новый компонент приложения в конфигурационный файл.
-Минимальная конфигурация:
+4) Add a new component of the application configuration file.
+Minimum configuration:
 ```php
 'components'=>array(
 	'sorter' => array(
@@ -74,8 +74,8 @@ Yii::setPathOfAlias('sorter', 'protected/extensions/wartur/yii-sorter');
 )
 ```
 
-5) Добавьте поведение в модель в которой требуется использовать упорядоченный список.
-Минимальная конфигурация:
+5) Add behavior to a model in which you want to use an ordered list.
+Minimum configuration:
 ```php
 public function behaviors() {
 	return array_merge(parent::behaviors(), array(
@@ -86,19 +86,18 @@ public function behaviors() {
 }
 ```
 
-6) Проверьте, что ваша модель удовлетворяет схеме, указанной в [sorter.tests.env.schema](https://github.com/wartur/yii-sorter/blob/master/tests/env/schema/sortest.sql).
-Помните для работы поведения требуется поле SIGNED INT sort с УНИКАЛЬНЫМ ключом. Подробнее
-вы можете прочитать в [API reference поведения](https://github.com/wartur/yii-sorter/blob/master/behaviors/SorterActiveRecordBehavior.php)
+6) Check that your model satisfies the formula given in the [sorter.tests.env.schema](https://github.com/wartur/yii-sorter/blob/master/tests/env/schema/sortest.sql).
+Remember to work the behavior required field SIGNED INT sort with a unique key.
+More you can read in [API reference](https://github.com/wartur/yii-sorter/blob/master/behaviors/SorterActiveRecordBehavior.php)
 
-Работа с готовыми виджетами
----------------------------
-К расширению поставляется базовый набор виджетов.
-Используя текущее API, вы можете написать свой виджет, остальное за вас
-сделает поведение. Вам не нужно знать, как оно сработает на низком уровне, важно
-понимать, что оно сработает очень быстро и правильно.
+Working with Widget Ready
+-------------------------
+Extention the available basic set of widgets. Using the current API, you can write
+your widget will do the rest for you behavior. You do not need to know how it will
+work at a low level, it is important to understand that it will work very quickly and correctly.
 
-1) Добавьте к таблице CGridView колонку с простым интерфейсом управления позициями.
-Минимальная конфигурация:
+1) Add to the table CGridView column with a simple interface management positions.
+Minimum configuration:
 ```php
 <?php
 $this->widget('zii.widgets.grid.CGridView', array(
@@ -113,8 +112,8 @@ $this->widget('zii.widgets.grid.CGridView', array(
 ?>
 ```
 
-2) Добавьте к таблице колонку для перемещения текущей строки перед определенной позицией.
-Минимальная конфигурация:
+2) Add to the table column to move the current line before a certain position.
+Minimum configuration:
 ```php
 <?php
 $this->widget('zii.widgets.grid.CGridView', array(
@@ -129,9 +128,9 @@ $this->widget('zii.widgets.grid.CGridView', array(
 ?>
 ```
 
-3) Для работы виджетов с контроллером, вам требуется добавить в контроллер
-действия и поведение. Поведение обеспечивает связь контроллера с моделью.
-Полный набор действий являются полной имплиментацией API поведения
+3) Widgets to work with the controller you want to add to controller
+actions and behavior. The behavior of the controller communicates with
+the model. Full set of actions are complete implimentatsiey API behavior
 ```php
 public function actions() {
 	return array_merge(parent::actions(), array(
@@ -152,17 +151,17 @@ public function behaviors() {
 	));
 }
 ```
+Learn more about these widgets you can read in the API reference
+directory [sorter.widgets](https://github.com/wartur/yii-sorter/tree/master/widgets),
+they have additional settings
 
-Подробнее об этих виджетах вы можете прочитать в API reference
-в директории [sorter.widgets](https://github.com/wartur/yii-sorter/tree/master/widgets),
-у них есть дополнительные параметры настройки
-
-Работа с подсветкой-вспышкой
-----------------------------
-Для подключения подсветки требуется в конфигурационном файле
-в конфигурации компонента добавить параметр useFlashHighligh.
-Данная настройка указывает компоненту на то, что требуется сохранять данные
-об операциях над моделями для последующего принятия решения о подсветке
+Work with backlight flash
+-------------------------
+To connect the backlight is required in the configuration file
+in the component configuration option to add useFlashHighligh.
+This setting specifies the component that you want to store
+the data on the operations of the models for the subsequent
+decision of the illumination
 ```php
 'components'=>array(
 	'sorter' => array(
@@ -173,8 +172,8 @@ public function behaviors() {
 )
 ```
 
-Подсветка выполнена в качестве методов хелперов для настройки CGvidView.
-Минимальная конфигурация:
+Illumination is made as helper methods for setting CGvidView.
+Minimum configuration:
 ```php
 <?php
 $this->widget('zii.widgets.grid.CGridView', array(
@@ -190,23 +189,21 @@ $this->widget('zii.widgets.grid.CGridView', array(
 ));
 ?>
 ```
+At helpers Sorter::fhGridRowHtmlOptionsExpression and Sorter::fhGridAfterUpdateCode
+have additional options of customization, more in the [API reference](https://github.com/wartur/yii-sorter/blob/master/components/Sorter.php) of methods
 
-У хелперов Sorter::fhGridRowHtmlOptionsExpression и Sorter::fhGridAfterUpdateCode
-есть дополнительные параметры кастомизации, подробнее в [API reference](https://github.com/wartur/yii-sorter/blob/master/components/Sorter.php)
-данных методов
+Using the advanced settings helper component Sorter, you can instead use
+the flash built into the allocation of selected yii. To do this,
+change the parameter to use Sorter::$flashHighlightCssClass='selected'.
+In this case afterAjaxUpdate set is not required.
 
-Используя дополнительные настройки хелперов компонента Sorter, вы сможете вместо вспышки
-использовать выделение selected встроенное в yii. Для этого надо поменять
-используемый параметр Sorter::$flashHighlightCssClass = 'selected'. В этом случае
-afterAjaxUpdate задавать не требуется.
-
-Обеспечение целостности на таблицах, не поддерживающие транзакции
+Ensuring integrity in the tables do not support transactions
 -----------------------------------------------------------------
-Действия имплементированы с использованием транзакций с максимальной изоляцией.
-В некоторых случаях транзакцию выполнить невозможно. Из-за этого приходится
-пользоваться блокированием таблицы целиком. В готовых действиях уже все имплементировано,
-вам требуется только добавить в конфигурационном файле в конфигурацию компонента
-соответствующую настройку:
+Actions are implemented using transactions with maximum security.
+In some cases it is impossible to execute the transaction.
+Because of this, we have to use the blocking of the entire table.
+In the ready to implement all actions already, you only need to add
+a configuration file to the configuration component appropriate setting:
 ```php
 'components'=>array(
 	'sorter' => array(
@@ -217,9 +214,9 @@ afterAjaxUpdate задавать не требуется.
 )
 ```
 
-Отладочная информация. Для фанатов подкапотного пространства
----------------------
-Можно добавить данную колонку и посмотреть как перемещаются биты или изменяюся натуральные величины поля sort =)
+Debug information. For fans of the engine compartment
+-----------------------------------------------------
+You can add this column and see how to move bits or modify the actual values of the field sort =)
 ```php
 'columns' => array(
 	array(
@@ -231,7 +228,6 @@ afterAjaxUpdate задавать не требуется.
 )
 ```
 
-Удачной работы!
+Good work!
 
-
-(Sorry for my english)
+(Sorry for my english. I'm using google translate)
