@@ -27,7 +27,7 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 использованному алгоритму, данное расширение удобно использовать для работы
 очень большими массивами данных, которые невозможно уместить в оперативную память.
 
-([Описание алгоритма](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md))
+[Описание алгоритма](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md)
 
 Расширение оформлено как компонент приложения, поведения для CActiveRecord и набора готовых
 виджетов и действий для работы с ним.
