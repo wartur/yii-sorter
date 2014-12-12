@@ -1,22 +1,22 @@
 Description of the algorithm ([Русская версия](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md))
-==================
+=================================================================================================================
 
 The algorithm is based on sparse arrays
 
-Разреженный массив
-------------------
-Допустим, что у нас есть разреженный массив с записями, индексированный по возрастанию.
-Для примера, возьмем мощность массива равное 16 [0..16].
+Sparse array
+------------
+Let us assume that we have a sparse array with entries indexed in ascending order.
+For example, consider an array output equal to 16 [0..16].
 ```
 4
 8
 12
 ```
 
-В такой массив можно вставить новую запись между двумя соседними всего за одну
-операцию записи - присвоения нового индекса, диапазон которого находится между
-этими соседями. Самый компромиссный вариант вставки, это получить среднее
-арифметическое между двумя соседними индексами.
+In such an array, you can insert a new record between the two neighboring
+just one write operation - assign a new index, the range of which is between
+these neighbors. Most inserts a compromise is to get the arithmetic mean
+between two adjacent indexes.
 ```
 4
 8
@@ -24,37 +24,38 @@ The algorithm is based on sparse arrays
 12
 ```
 
-Свободные индексы со временем заканчиваются, и при вставке очередной записи может
-произойти конфликт индексов.
+Free Indexes eventually come to an end, and insert the next entry
+may be a conflict of indices.
 ```
 4
 8
 10
-<<< хочу вставить еще одну запись на позицию №4
+<<< I want to insert another record for the position №4
 11
 12
 ```
 
-Для предотвращения конфликтов требуется нормализировать
-разреженный массив, распределяя индексы таким образом,
-что бы образовывалось свободное пространство и вставить очередную запись
+In order to prevent conflicts need to normalize the sparse array,
+spreading codes in a way that would generate free space to insert another record
 ```
 2
 4
 6
-8 - это новая запись на позиции №4
+8 - this is a new record for the position №4
 10
 12
 ```
 
-Далее весь смысл улучшения алгоритма сводится к тому, что бы разреженный массив
-требовал как можно меньше операций нормализации. Для этого требуется обработать частые операции,
-которые живут по разным законам математики.
+Next, the whole point of improving the algorithm boils down to a sparse
+array to require as little as possible normalization of operations.
+This requires frequent operation process, who live according to
+different laws of mathematics.
 
-Преимущества данного алгоритма в том, что он "оттягивает" операцию перезаписи
-целых блоков, в случае когда требуется вставить в произвольное место. Так при использовании
-плотного заполнения поля сортировки нам бы пришлось перезаписывать целый блок записей
-при перестановке. Приведем в пример другой алгоритм, реализация которого тривиальна:
+Advantages of this algorithm is that it "pulls" whole blocks
+overwriting operation in the case when it is required to insert
+an arbitrary place. So when using dense fields sort we would have
+to rewrite the whole block of records on interchange. Here is an
+example of a different algorithm, the implementation of which is trivial:
 ```
 1 - 1
 2 - 2
@@ -67,51 +68,51 @@ The algorithm is based on sparse arrays
 8 - 8 * >>>
 9 - 9
 ```
-* - звездочкой отмечены записи, которые обновятся. С точки зрения SQL
-это 3 тривиальных команды которые делают примерно следующие действия:
-8 присваиваем -8, далее делаем сдвиг + 1 для записей 6-7 с зада на перед, далее 8 присваиваем 6.
-При 10 записях это кажется ерундой, при 20 тысячах работать
-с этом в реальном времени будет невозможно при условии перемещения на большие расстояния.
+* - Asterisk marked records that are updated. From the perspective of SQL is trivial 3 teams that make about the following: 8 assign -8, then do a shift + 1 for 6-7 records with a given before, then 8 assign 6. 10 records it seems nonsense, at 20 thousand work with this in real time is not possible, subject movement over long distances.
 
-Отсупление:
-> Даже в этом случае начинать индекс требуется с середины диапазона,
-> то есть 8. В примере начат с единицы для простоты.
+Вigression:
+> Even in this case, starting from the index requires the middle range,
+> i.e. 8. In the example started with the unit for simplicity.
 
-Минус алгоритма работающего на разреженных массивах в том,
-что для использования алгоритма мы не можем плотно заполнять поле сортировки.
-Количество  записей поддерживаемых эффективно уменьшается.
-Подробнее в разделе [Как правильно рассчитывать поле сортировки](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md#user-content-Как-правильно-рассчитывать-поле-сортировки)
+Minus the algorithm works on sparse arrays is that for the algorithm,
+we can not fill tightly sort field. The number of entries supported
+effectively reduced.
+[Read more in How to correctly calculate sort field](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.md#user-content-Read-more-in-How-to-correctly-calculate-sort-field)
 
-Вторая сложность это сложность реализации самого алгоритма
+The second problem is the complexity of the implementation of the algorithm
 
-Работа при нормальном распределении
------------------------------------
-При использовании нормального распределения считается, что требуется вставлять
-очередную запись между двумя пограничными. Это означает, что первое значение
-для вставки будет равно (0 + 16) / 2 = 8, второе (8 + 16) / 2 = 12,
-третье (12 + 16) / 2 = 14 и так далее ...
+Work at normal distribution
+---------------------------
+When using the normal distribution is considered that the need
+to insert another record between the two border. This means that
+the first value to the insert will be equal to (0 + 16) / 2 = 8,
+and the second (8 + 16) / 2 = 12, the third (12 + 16) / 2 = 14 and so on ...
 
-При условии нормального распределения, то есть вставки в произвольные места по
-закону нормального распределения не потребуется ни одной нормализации пространства,
-так как все очередные записи лягут в разреженные пространства между индексами.
+Assuming a normal distribution, that is, insertion into arbitrary
+locations on the normal distribution does not need to normalize
+the audio space, since all records form the next space between
+the sparse index.
 
-Смысла использования нормального распределения в чистом виде нет, так как в реальной
-жизни пожелания пользователя не случайны. В приведенном выше примере при постоянной
-вставки в конец очереди уже через 5-6 итераций, мы достигнем деградации
-между 15..16 и потребуется нормализация. Это один из примеров линейных операций.
-Такие операции требуют дополнительной обработки с помощью линейных законов математики.
+Meaning the use of the normal distribution in its pure form is not,
+as in real life user wishes not accidental. In the above example,
+at a constant insertion into the end of the queue after 5-6 iterations,
+we will reach between 15..16 degradation and require normalization.
+This is one example of linear operations. Such operations require
+additional processing by linear laws of mathematics.
 
-Оптимизация линейных операций
------------------------------
-#### Вставка в начало/конец списка
+Optimization of linear operations
+---------------------------------
+#### Insert at the beginning / end of the list
 
-В качестве первого примера линейных операций возьмем вставку в начало/конец списка, эти операции
-очень частые в повседневной жизни. На практике новые записи добавляются в начало/конец
-списка, а далее перемещаются куда-либо. Добавление в конец списка не определяется нормальным законом.
-Это линейная операция.
+As a first example of linear operations take the insert at the
+beginning / end of the list, these operations are very frequent in
+everyday life. In practice, the new entries are added to the
+beginning / end of the list, and then move somewhere else.
+Adding to the end of the list is not determined by the normal law.
+This is a linear operation.
 
-Возьмем другую мощность массива 0..64. Пример работы в случае, если 
-мы используем стандартную вставку между двумя значениями
+Take another power array 0..64. EXAMPLE work if we use a standard
+insert between two values
 ```
 32
 48
@@ -119,15 +120,15 @@ The algorithm is based on sparse arrays
 60
 62
 63
-// Итого 6 итераций.
+// Total 6 iterations.
 ```
 
-Как вы видите, потребовалось не так много итераций, чтобы произошла деградация.
-Кроме того можно наблюдать в конце списка очень плохую разрежённость массива, а вначале слишком разреженную.
-Все это означает, что для линейной вставки в конец списка требуется использовать
-линейную функцию, которая будет генерировать очередной индекс с определенным промежутком.
-Для этого зададим параметр, назовем его Мощность Разрежённости(МР) по умолчанию.
-Попробуем производить вставку очередных значений с МР = 4
+As you can see, it did not take so many iterations that have been degraded.
+In addition, you can watch at the end of the list is very bad rarefaction array,
+and at first too sparse. All this means that for linear insertion end of the list
+is required to use a linear function that will generate the next index at
+specified intervals. To do this, we define a parameter called
+sparse Power (MP) by default. Let's try to make the next insert values with MR = 4
 ```
 32
 36
@@ -137,22 +138,23 @@ The algorithm is based on sparse arrays
 52
 56
 60
-// Итого 7 итераций
+// Total 7 iterations
 ````
 
-В этот раз итераций получилось больше. Мы наблюдаем, что разреженный массив
-не деградировал в конце списка и он способен принять очередную запись на любую позицию
-до 2-х раз. Деградация по сути распределилась по пространству равномерно.
+In this time of iterations to get more. We are seeing that a sparse array
+is not degraded at the end of the list, and he is able to take the next
+entry to any position up to 2 times. Degradation is essentially uniformly
+distributed across space.
 
-Это еще не все. Когда использование МР приведет к выходу за пределы массива,
-следует использовать стандартную вставку с делением на 2.
+That's not all. When the use of MR will exit outside the array, you should
+use the standard insertion division by 2.
 ```
-... 5 итераций
+... 5 iterations
 56
 60
 62
 63
-// 10 итераций ...
+// 10 iterations ...
 ```
 Итого получилось 10 итераций вместо 6-ти изначальных.
 
