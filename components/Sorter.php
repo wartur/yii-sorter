@@ -62,7 +62,7 @@ class Sorter extends CApplicationComponent {
 	/**
 	 * @var array cache backlight units
 	 */
-	private $casheFlash = [];
+	private $casheFlash = array();
 
 	/**
 	 * Initializes the application component.
