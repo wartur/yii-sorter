@@ -234,4 +234,4 @@ afterAjaxUpdate задавать не требуется.
 Удачной работы!
 
 
-(Sorry for my English)
+(Sorry for my english)
