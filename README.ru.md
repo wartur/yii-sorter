@@ -5,6 +5,8 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 
 ДЕМО: http://yii-sorter.wartur.ru
 
+[Описание алгоритма](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md)
+
 ## Релиз 1.0.0 для Yii первый и последний. Дальнейшая разработка [будет происходить на Yii2](https://github.com/wartur/yii2-sorter)
 
 ###### От автора
@@ -26,8 +28,6 @@ YII-SORTER ([English version](https://github.com/wartur/yii-sorter/blob/master/R
 Примеры использования: порядок вывода статей на страницу, расположение виджетов на экране. Благодаря
 использованному алгоритму, данное расширение удобно использовать для работы
 очень большими массивами данных, которые невозможно уместить в оперативную память.
-
-[Описание алгоритма](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md)
 
 Расширение оформлено как компонент приложения, поведения для CActiveRecord и набора готовых
 виджетов и действий для работы с ним.
