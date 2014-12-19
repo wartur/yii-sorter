@@ -156,12 +156,12 @@ use the standard insertion division by 2.
 63
 // 10 iterations ...
 ```
-Итого получилось 10 итераций вместо 6-ти изначальных.
+Total received 10 iterations instead of 6 original.
 
-#### Перестановка позиций местами
-Еще одна частая пользовательская операция это перестановка позиций местами.
-Посмотрим пример. В пример добавлены индексы записей, так как теперь придется работать
-не с анонимными записями.
+#### Rearrange places
+Another part of the user operation is a permutation of places.
+Let's see an example. In the example, we added indexes records,
+as will now have to work not with anonymous records.
 ```
 1 - 32
 <<<
@@ -169,88 +169,89 @@ use the standard insertion division by 2.
 3 - 40 >>>
 4 - 44
 ```
-При вставке в центр списка приходится использовать стандартный механизм вставки
-в разреженное пространство. Попробуем начать переставлять 2 записи местами.
+When inserted into the center of the list have to use a standard mechanism
+inserted into the rarefied space. Let's try to start to rearrange 2 recording sites.
 ```
-// итерация 1
+// iteration 1
 1 - 32
 <<<
 3 - 34
 2 - 36 >>>
 4 - 44
 
-// итерация 2
+// iteration 2
 1 - 32
 <<<
 2 - 33
 3 - 34 >>> 
 4 - 44
 
-// деградация
+// degradation
 ```
-Мы видим очень высокую скорость деградации при самой частой операции.
-Данную операцию необходимо обработать. Обрабатывается она очень просто, мы
-просто меняем записи местами
+We see a very high rate of degradation at the most common operations.
+This operation must be treated. Handled it very simply,
+we just change the recording sites.
 ```
-// Итерация 0
+// iteration 0
 1 - 32
 <<<
 2 - 36
 3 - 40 >>>
 4 - 44
 
-// Итерация 1
+// iteration 1
 1 - 32
 <<<
 3 - 36
 2 - 40 >>>
 4 - 44
 
-// Итерация 2
+// iteration 2
 1 - 32
 <<<
 2 - 36
 3 - 40 >>>
 4 - 44
-// ..... и так до бесконечности
+// ..... and so on to infinity
 ```
-В этом случае деградации не происходит вообще. При
-желании вы можете сортировать хоть пузырьком.
+In this case, the degradation does not occur at all.
+If desired, you can sort though the bubble.
 
-Процесс нормализации
---------------------
-Как было сказано выше алгоритм позволяет оттягивать наступление события при котором
-требуется перезаписывать целый блок записей, все равно когда-то это событие настает
-С этой проблемой можно сражаться разными способами. Самым простым способом
-будет регулярная нормализация разреженного пространства всего массива
-через некоторый промежуток времени, в этом случае мы задаем некоторые параметры
-прочности разреженного массива и просим пользователя их соблюдать за определенный
-промежуток времени.
-На нашем примере мы попросим не вставлять в одно и то же место более 2-х раз например
-не чаще раза в сутки (ведь при регулярной нормализации произойдет серьезный лаг системы).
-Даже если мы берем нормальные настройки, то это будет не более 15 раз в одно место в сутки.
-Все равно это очень мало. Что бы не докучать пользователя ограничениями мы должны
-уметь разрешать проблемные места автоматически. Для этого была создана нормализация на лету.
-Так же есть отдельный тип нормализации - экстремальная нормализация,
-как частный случай регулярной нормализации.
+The normalization
+-----------------
+As mentioned above algorithm can delay occurrence of an event that
+requires a rewrite unit records still once the event comes this problem
+can fight different ways. The easiest way to be a regular normalization
+rarefied space the entire array after a certain period of time,
+in this case, we set some parameters of strength sparse array
+and ask the user to observe them for a certain period of time.
+In our example, we will ask not to insert in the same place for more
+than 2 times for example not more than once per day (after normalization
+to happen at regular serious lag system). Even if we take the normal
+setting, it will be no more than 15 times in one bed per night.
+All the same, it is very small. That would not bother the user constraints,
+we must be able to resolve the problem areas automatically.
+For this normalization was created on the fly. There's also a separate
+type of normalization - normalization of the extreme,
+as a special case of regular normalization.
 
-#### Нормализация на лету
-То есть такая нормализация которая пытается разрешить конфликт в момент его обнаружения
-на ограниченном пространстве. Задача сводится к тому, что бы с одной стороны затронуть
-как можно меньше записей для уменьшения лага системы, с другой стороны произвести операцию
-распределения таким образом, что бы уровень деградации был максимально низок.
-Для этого вводится дополнительный параметр алгоритма
-Минимальная Локальная Мощность Разрежённости (МЛМР). Этот параметр гарантирует
-определенный уровень качества распределения, ниже которого не может опуститься алгоритм,
-в следствии чему ему приходится принимать другие решения для разрешения конфликта.
-Как используется этот параметр будет объяснено далее.
+#### Normalization on the fly
+That is such a normalization that is trying to resolve the conflict when
+it is detected in a limited space. The problem is to ensure that on the
+one hand to touch as little as possible to minimize lag records system,
+on the other hand to make the distribution of the operation so that the
+degradation rate would be maximally low. For this we introduce an additional
+parameter algorithm Minimum Local Power sparse (MLMR). This option ensures
+a certain level of quality distribution, below which the algorithm can not
+fall, in consequence of which he has to take other solutions to resolve
+the conflict. How to use this parameter will be explained later.
 
-Теперь перейдем к описанию процесса нормализации на лету. Для этого
-нам вновь требуется увеличить мощность разреженного массива. Теперь он такой [0..512].
-Далее установим МР = 16 и МЛМР = 4. Кстати обозначим сокращение
-Мощность Разреженного Массива (МРМ).
+We now turn to the description of the process of normalization on the fly.
+To do this we need to increase the capacity of the newly sparse array.
+Now he is a [0..512]. Next, install the MP = 16 and = 4.
+By the way MLMR denote power reduction sparse arrays (MRM).
 
-К сожалению, пример получится достаточно громоздким:
+Unfortunately, the sample will be rather cumbersome:
 ```
 1 - 256 >>> ... >>>
 2 - 272
@@ -271,8 +272,8 @@ use the standard insertion division by 2.
 16 - 496
 ```
 
-Теперь будем циклически переставлять первую позицию после 9-й пока не наступит конфликт.
-Нетрудно подсчитать, что деградация наступит через 4 итерации.
+Now we cycled to rearrange the first position after the 9th until such conflict.
+It is easy to calculate that degradation occurs after 4 iterations.
 ```
 5 - 320 >>>
 6 - 336!
@@ -283,7 +284,7 @@ use the standard insertion division by 2.
 2 - 396
 3 - 398
 4 - 399
-<<< конфликт!
+<<< conflict!
 10 - 400
 11 - 416
 12 - 432
@@ -293,45 +294,42 @@ use the standard insertion division by 2.
 16 - 496!
 ```
 
-Теперь начнем процесс нормализации. Для этого требуется выбрать две пограничных записи.
-Равное ширине просмотра. В данном случае на 4 позиции. Число 4 берется как
-количество сдвигов числа 1 что бы получился МР = 16. То есть 1 << 4 = 16. На самом
-деле все настройки правильно хранить в единицах смещения битов, так как потом
-удобнее считать некоторые суммы (заметка: если вы посмотрите на низком уровне в реальности
-происходит установка последнего "свободного" бита на 1 или на 0 для определения
-очередности при вставки новой записи в центр списка).
+We now begin the process of normalization. This requires two select border recording.
+Equal to the width of the view. In this case, the 4-position. Number 4 is taken as
+the number of shifts of 1 to get a MP = 16. That is 1 << 4 = 16. In fact, all the settings
+to store bits in units of displacement, since then it is more convenient to consider
+some amount (note: if you look at low installation occurs in reality the last "free"
+bit to 1 or 0 to determine priorities for the insertion of a new record in the facility list).
 
-Далее на этом диапазоне ищется Локальная Мощность Разрежённости (ЛМР).
-Для этого требуется взять количество записей в диапазоне между записью 392 и 448. (обозначено "*")
-Если перемещаемая запись находится вне диапазона, то её надо добавить к этому количеству.
-В нашем случае количество записей 6 + 1 = 7.
-Далее мы берем разницу 448-392 = 56 и начинаем искать такой ЛМР, который при
-распределении 7-ми записей уместится в этот диапазон. Начнем с максимального,
-которые практически всегда не поместится 16(1<<4)*7+16 = 128, 128 <= 56 = false. Ищем дальше.
-8(1<<3)*7+8 = 56, 62 <= 56 = false. Ищем дальше. 4(1<<2)*7+4 = 32, 32 <= 56 = true
-Отлично, мы нашли новую ЛМР этого диапазона. +16,8,4 которые вы видите в сумме,
-это дополнительное зарезервированное место между граничными записями 392 и 448.
-Иначе расчет будет происходить впритык, что снижает качество
-разрежённости которое получается после нормализации на границах диапазона.
+Next on the band looks for a local power sparse (LMR). This requires to take
+the number of entries recorded in the range between 392 and 448 (indicated by "").
+If the record is outside the movable range, it is necessary to add to this amount.
+In our case, the number of entries 6 + 1 = 7. Next we get the difference 448-392 = 56 and start looking for
+a LMR that the allocation of 7 records fit in this range.
+Let's start with the maximum, which is almost always not fit 16 (1 << 4) 7 + 16 = 128, 128 <= 56 = false.
+Looking on. 8 (1 << 3) + 7 = 56 8, 62 <= 56 = false. Looking on. 4 (1 << 2) 7 + 4 = 32, 32 <= 56 = true Well,
+we have found a new LMR this range. +16,8,4 You see in sum,
+this additional reserved space between the boundary 392 and 448.
+Records Otherwise, payment will be back to back, which reduces
+the quality of the sparse which is obtained after normalization to the range.
 
-Небольшое отступление 1:
-> Если при поиске ЛМР < МЛМР,
-> то требуется произвести все действия по поиску заново с удвоенной глубиной просмотра.
-> То есть если бы у нас что-то не срослось, то нам бы пришлось брать диапазон
-> c 336 до 496 (обозначено "!"). Если снова не нашли, то снова удваиваем просмотр.
+A small digression 1:
+> If the search LMR <MLMR, it is required to make all the steps
+> to search again with twice the depth of view. That is, if we have something did not grow together,
+> then we'd have to take a range of 336 to 496 c (indicated by "!").
+> If you still do not find it, again double the viewing.
 
-Небольшое отступление 2:
-> Ширина просмтотра равное 4 выбрано потому что, количество смещений
-> это как раз то количество итераций, которое требуется выполнить для получения конфликта.
-> Мы берем блок записей с полем сортировки равное с 392 до 448. Одна часть блока является
-> нормализированной(ЛМР == МР), вторая часть является деградирующей (ЛМР < МР).
-> 
-> Кстати, в боевых условиях с высокой степенью вероятности
-> обе части будут деградирующими.
+A small digression 2:
+> Width of view of 4 selected because the amount of displacement is exactly
+> the number of iterations to be executed for the conflict.
+> We take a block of records from the sort field equal to 392 to 448.
+> One of the unit is normalized (LMR == MR), the second part is degraded (LMR <MR).
+>
+> By the way, in combat conditions with a high degree of probability, both parts will be degrading.
 
-Теперь требуется равномерно распределить ЛМР эти записи по этому диапазону, оставив
-место для конфликтной записи. Этот алгоритм я объяснять не буду, так как его
-можно выполнить по-разному, в результате получается следующий результат.
+Now we want to distribute the LMR these records in this range, leaving room for conflicting entries.
+This algorithm I will not explain, because it can be done in different ways,
+the result is the following result.
 ```
 6 - 336
 7 - 352
@@ -341,7 +339,7 @@ use the standard insertion division by 2.
 2 - 420 <<<
 3 - 424
 4 - 428
-5 - 432 +++ пространство нормализировано, добавлена новая запись
+5 - 432 +++ normalized space, added a new entry
 10 - 436 
 11 - 440
 12 - 444 <<<
@@ -350,10 +348,9 @@ use the standard insertion division by 2.
 15 - 480
 16 - 496
 ```
-Есть еще две специальных ситуации при распределении,
-которые можно определить и оптимизировать. Например, если при
-поиске одна из границ поиска
-оказалось за пределами занятой части массива. Например:
+There are two special situations in the allocation that can be identified and optimized.
+For example, if the search is one of the boundaries of the search turned out to be outside
+the occupied part of the array. For Example:
 ```
 1 - 256
 <<< ... <<<
@@ -373,10 +370,10 @@ use the standard insertion division by 2.
 15 - 480
 16 - 496 >>> ... >>>
 ```
-Результат такой циклической перестановки:
+The result of such a cyclic permutation:
 ```
 1 - 256
-<<< конфликт!
+<<< conflict!
 13 - 257
 14 - 258
 15 - 260
@@ -393,13 +390,13 @@ use the standard insertion division by 2.
 11 - 416
 12 - 432 >>>
 ```
-То при условии, если у начальной границы разреженного массива до конфликтной
-достаточно свободного пространства (264 - 0 = 264 при 5-ти позициях для распределения),
-можно провести распределение от одной границы до другой используя параметр МР.
-Результат будет таким:
+Then provided, if the initial sparse array to the border conflict
+is sufficient space (264 - 0 = 264 in 5 positions for distribution),
+it is possible to carry out the distribution from one end to the other
+using the parameter MR. The result will be:
 ```
 1 - 184
-12 - 200 +++ пространство нормализировано, добавлена новая запись
+12 - 200 +++ normalized space, added a new entry
 13 - 216
 14 - 232
 15 - 248
@@ -417,73 +414,65 @@ use the standard insertion division by 2.
 12 - 432
 ```
 
-Вторая ситуация, это когда при поиске 2 границы вышли за текущее пространство.
-Это частный случай регулярной нормализации.
+The second situation is when the search went beyond the boundaries of two current space.
+This is a special case of regular normalization.
 
-#### Регулярная нормализация
-То есть такая нормализация, которая пытается восстановить МР по умолчанию на всем
-диапазоне значений. Работает предельно просто, берем количество значений, ищем
-ЛМР для этого диапазона и распределяем пространство. Если ЛМР < МЛМР, то активируется
-экстремальная нормализация
+#### Regular normalization
+That is, this normalization, which is trying to recover MP by default
+on the entire range of values. Works very simple, we take the number of values,
+LMR looking for this range and allocates space.
+If LMR <MLMR then activated extreme normalization
 
-#### Экстремальная нормализация
-То есть такая нормализация, которая пытается хоть как-то распределить пространство
-и разрешить конфликт, вплоть до полного заполнения мощности разреженного массива.
-Для поиска ЛМР используется значение ниже чем МЛМР. По сути, ничем не отличается
-от регулярной нормализации, просто это специальный случай, которого происходить
-в принципе не должно. Это означает, что алгоритм работает в аварийном режиме
-и с огромными лагами.
+#### Extreme normalization
+That is, this normalization, which is trying to somehow allocate space and to resolve the conflict,
+up to the full capacity of power sparse array. To search for LMR value is lower than MLMR.
+In essence, no different from a regular normalization, it is just a special case that occurs
+in principle not be. This means that the algorithm works in an emergency mode and a huge lags.
 
-Как хранить поле сортировки
+How to store the sort field
 ---------------------------
-Поле сортировки это поле INT c уникальным индексом. Уникальность требуется
-для обеспечения непротиворечивости информации. Иметь отрицательное значение
-требуется для обеспечения возможности перестановки. Так перестановку можно
-сделать через отрицательные значения.
+Sort this field INT c unique index. Uniqueness is required to ensure consistency of information.
+Have a negative value is required to enable rearrangement.
+So permutation can be done through negative values.
 
-Как правильно рассчитывать поле сортировки
-------------------------------------------
-В алгоритме есть 3 параметра.
-МРМ/МР/МЛМР
+How to calculate the sort field
+-------------------------------
+The algorithm has 3 parameters. MPM / MR / MLMR
 
-По умолчанию для 32-битной системы эти параметры равны 30/15/4
-(максимальное количество записей с эффективной работой 32768)
+By default, a 32-bit system, these parameters are 30/15/4.
+(maximum number of entries to the effective operation of 32768)
 
-Для 64-битной системы эти параметры равны 62/31/6
-(максимальное количество записей с эффективной работой 2147483648)
+For a 64-bit system, these parameters are 62/31/6
+(maximum number of entries to the effective operation of 2147483648)
 
-Правильнее всего использовать INT в качестве PK, а BIGINT в качестве поля сортировки.
+The right thing to use INT as PK, and BIGINT as a sort field.
 
-По настройке все просто. МРМ задает используемый диапазон.
-Если вам надо использовать диапазон агрессивнее, то увеличивайте МР. Тогда
-операция нормализации будет срабатывать меньше раз. Если вы хотите наоборот иметь
-больше значений, то устанавливайте МР меньше, однако из-за этого будет больше
-опираций оптимизации.
+For setting up simple. MRM sets used range. If you need to use a range of aggressive,
+it increases the MP. Then the operation of normalization will work less time.
+If you want to make a big difference on the contrary, the Seals less,
+but because of this there will be more opiratsy optimization.
 
-Заметка по МРМ
-Как вы заметили оно тоже определено в битовом смещении. При чем, это битовое
-смещение равно 1073741824 то есть половина INT. Это сложилось исторически,
-кроме того удобно считать MAX INT без переполнения как INT - 1 + INT.
-Эта формула используется для определения верхней границы разреженного массива.
-Кроме того, это число используется как первое значение для вставки.
+Notes on MRM. As you noticed it too is defined in the bit offset.
+With that, it is the bit offset is equal to 1073741824 that is half INT.
+Historically it also convenient to assume without overflow MAX INT as INT - 1 + INT.
+This formula is used to determine the upper limit of sparse array.
+Furthermore, this number is used as the first value for the insert.
 
-Итого
------
-Алгоритм очень устойчив к разным издевательствам, вроде циклической перестановки
-записей в одно и то же место в центре списка, перемещения записи методом пузырька,
-циклической вставки в конец списка, имеет уведомления в лог,
-которые заведомо сообщает администратору, о том, что алгоритм
-в скором времени перейдет на аварийный режим работы. В аварийном режиме
-он, хоть и с большими потерями производительности, но продолжит работать, до физического
-исчерпания разреженного массива.
+In total
+--------
+The algorithm is very robust to various humiliations, such as a cyclic permutation of records
+in the same place in the middle of the list, move the recording by the bubble ring inserted
+into the end of the list, has a notice in the log, which obviously tells the administrator
+that the algorithm in a short time switch to emergency mode. In emergency mode, it is,
+though with great loss of performance, but will continue to work, to the physical
+exhaustion of a sparse array.
 
-Кстати, использование этого алгоритма не отменят возможности использовании простейшего
-алгоритма использованного выше, более они могут дополнять друг друга. Так, перемещение
-записи на 10 позиций с перезаписью всех десяти блоков не сильно скажется на производительности,
-а перемещения на большие расстояния или вставку в центр списка
-можно делать с помощью данного алгоритма.
+By the way, the use of this algorithm does not cancel the option of using
+a simple algorithm used above, more than they can complement each other.
+So, moving up 10 places recording and overwrite all ten blocks
+are not strongly affect performance, and moving long distances or
+insert in the center of the list can be done by using this algorithm.
 
-
-Спасибо
--------
-Спасибо что дочитали, надеюсь, было интересно!
+Thank you!
+----------
+Thank you for reading, I hope it was interesting!
