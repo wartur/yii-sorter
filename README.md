@@ -230,4 +230,4 @@ You can add this column and see how to move bits or modify the actual values of 
 )
 ```
 
-Good work!
+Good luck!
