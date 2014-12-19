@@ -1,6 +1,8 @@
 Description of the algorithm ([Русская версия](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md))
 =================================================================================================================
 
+(Sorry for my english. I'm using google translate)
+
 The algorithm is based on sparse arrays
 
 Sparse array
