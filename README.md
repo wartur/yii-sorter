@@ -5,7 +5,7 @@ Extension for Yii to work with an ordered list of user controlled. When using th
 
 DEMO: http://yii-sorter.wartur.ru
 
-[Description of the algorithm](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.md)
+[Description of the algorithm (rus)](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.ru.md)
 
 ## Release 1.0.0 for Yii first and last. Further development [to be carried out on Yii2](https://github.com/wartur/yii2-sorter)
 
