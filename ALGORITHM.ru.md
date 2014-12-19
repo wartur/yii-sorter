@@ -1,4 +1,4 @@
-Описание алгоритма ([English version](https://github.com/wartur/yii-sorter/blob/master/ALGORITHM.md))
+Описание алгоритма
 ==================
 
 Работа алгоритма основана на разреженных массивах
