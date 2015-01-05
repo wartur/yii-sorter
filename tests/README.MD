@@ -14,3 +14,6 @@ ext.wartur.yii-sorter
 sorter.tests.unit >>> application/test/unit/extentions/wartur/yii-sorter
 ln -s /path/to/sorter__/tests/unut /path/to/project/tests__/unit/extentions/wartur
 If you have a Window, use junction
+
+- customize the configuration file as it is done in the example
+example in directory: sorter.tests.env.config

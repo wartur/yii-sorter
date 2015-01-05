@@ -1114,7 +1114,7 @@ class SorterActiveRecordBehavior extends CActiveRecordBehavior {
 	public function afterConstruct($event) {
 		parent::afterConstruct($event);
 
-		// Only in debug mode. On prodakshene is a waste of electricity
+		// Only in debug mode. On production is a waste of electricity
 		if (YII_DEBUG) {
 			if (PHP_INT_SIZE == 4 && $this->sortFieldBitSize > 30) {
 				throw new CException(Yii::t('SorterActiveRecordBehavior', 'The specified bit offset exceeds the capabilities of 32-bit architecture'));
